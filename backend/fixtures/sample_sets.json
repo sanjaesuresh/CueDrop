@@ -1,0 +1,127 @@
+[
+  {
+    "dj": {
+      "name": "Fisher",
+      "genres": ["tech house"],
+      "profile_url": "https://www.1001tracklists.com/dj/fisher/index.html",
+      "set_count": 48
+    },
+    "event": "Coachella 2024",
+    "date": "2024-04-14",
+    "venue": "Yuma Tent, Indio",
+    "source_url": "https://www.1001tracklists.com/tracklist/example1",
+    "tracks": [
+      {"title": "Losing It", "artist": "Fisher", "bpm": 126.0, "genre": ["tech house"], "label": "Catch & Release", "duration_ms": 390000},
+      {"title": "Stop It", "artist": "Fisher", "bpm": 126.0, "genre": ["tech house"], "label": "Catch & Release", "duration_ms": 330000},
+      {"title": "Cola", "artist": "CamelPhat & Elderbrook", "bpm": 125.0, "genre": ["tech house"], "label": "Defected", "duration_ms": 360000},
+      {"title": "Gecko (Overdrive)", "artist": "Oliver Heldens", "remix": "Tchami Remix", "bpm": 125.0, "genre": ["tech house"], "label": "Musical Freedom", "duration_ms": 345000},
+      {"title": "It Makes You Forget (Itgehane)", "artist": "Peggy Gou", "bpm": 124.0, "genre": ["tech house"], "label": "Gudu Records", "duration_ms": 375000},
+      {"title": "Freaks", "artist": "Fisher", "bpm": 127.0, "genre": ["tech house"], "label": "Catch & Release", "duration_ms": 315000},
+      {"title": "You Little Beauty", "artist": "Fisher", "bpm": 126.0, "genre": ["tech house"], "label": "Catch & Release", "duration_ms": 348000},
+      {"title": "The Bomb", "artist": "Picard Brothers", "bpm": 126.0, "genre": ["tech house"], "label": "Club Sweat", "duration_ms": 300000},
+      {"title": "On My Mind", "artist": "Diplo & SIDEPIECE", "bpm": 125.0, "genre": ["tech house"], "label": "Higher Ground", "duration_ms": 285000},
+      {"title": "Miami", "artist": "Will Clarke", "bpm": 127.0, "genre": ["tech house"], "label": "Dirtybird", "duration_ms": 360000},
+      {"title": "Preach", "artist": "John Summit", "bpm": 126.0, "genre": ["tech house"], "label": "Defected", "duration_ms": 330000},
+      {"title": "Just Hold On", "artist": "Fisher", "bpm": 126.0, "genre": ["tech house"], "label": "Catch & Release", "duration_ms": 342000}
+    ]
+  },
+  {
+    "dj": {
+      "name": "Chris Lake",
+      "genres": ["tech house"],
+      "profile_url": "https://www.1001tracklists.com/dj/chrislake/index.html",
+      "set_count": 72
+    },
+    "event": "EDC Las Vegas 2024",
+    "date": "2024-05-19",
+    "venue": "Neon Garden, Las Vegas Motor Speedway",
+    "source_url": "https://www.1001tracklists.com/tracklist/example2",
+    "tracks": [
+      {"title": "Losing It", "artist": "Fisher", "bpm": 126.0, "genre": ["tech house"], "label": "Catch & Release", "duration_ms": 390000},
+      {"title": "Turning of the Tide", "artist": "Chris Lake", "bpm": 126.0, "genre": ["tech house"], "label": "Black Book Records", "duration_ms": 360000},
+      {"title": "Operator (Ring Ring)", "artist": "Chris Lake & Armand Van Helden", "bpm": 127.0, "genre": ["tech house"], "label": "Black Book Records", "duration_ms": 315000},
+      {"title": "Cola", "artist": "CamelPhat & Elderbrook", "bpm": 125.0, "genre": ["tech house"], "label": "Defected", "duration_ms": 360000},
+      {"title": "Preach", "artist": "John Summit", "bpm": 126.0, "genre": ["tech house"], "label": "Defected", "duration_ms": 330000},
+      {"title": "Stay", "artist": "Chris Lake & Green Velvet", "bpm": 128.0, "genre": ["tech house"], "label": "Black Book Records", "duration_ms": 345000},
+      {"title": "Boneless", "artist": "Chris Lake", "bpm": 126.0, "genre": ["tech house"], "label": "Black Book Records", "duration_ms": 300000},
+      {"title": "Free Your Body", "artist": "Sonny Fodera & Dom Dolla", "bpm": 125.0, "genre": ["tech house"], "label": "Solotoko", "duration_ms": 330000},
+      {"title": "On My Mind", "artist": "Diplo & SIDEPIECE", "bpm": 125.0, "genre": ["tech house"], "label": "Higher Ground", "duration_ms": 285000},
+      {"title": "I Want You", "artist": "Chris Lake", "bpm": 126.0, "genre": ["tech house"], "label": "Black Book Records", "duration_ms": 312000},
+      {"title": "La Bomba", "artist": "Riordan", "bpm": 127.0, "genre": ["tech house"], "label": "Repopulate Mars", "duration_ms": 348000}
+    ]
+  },
+  {
+    "dj": {
+      "name": "John Summit",
+      "genres": ["tech house"],
+      "profile_url": "https://www.1001tracklists.com/dj/johnsummit/index.html",
+      "set_count": 55
+    },
+    "event": "Tomorrowland 2024",
+    "date": "2024-07-21",
+    "venue": "Boom, Belgium",
+    "source_url": "https://www.1001tracklists.com/tracklist/example3",
+    "tracks": [
+      {"title": "Where You Are", "artist": "John Summit", "bpm": 128.0, "genre": ["tech house"], "label": "Experts Only", "duration_ms": 360000},
+      {"title": "La Danza", "artist": "John Summit & Subtronics", "bpm": 127.0, "genre": ["tech house"], "label": "Experts Only", "duration_ms": 315000},
+      {"title": "Losing It", "artist": "Fisher", "bpm": 126.0, "genre": ["tech house"], "label": "Catch & Release", "duration_ms": 390000},
+      {"title": "Cola", "artist": "CamelPhat & Elderbrook", "bpm": 125.0, "genre": ["tech house"], "label": "Defected", "duration_ms": 360000},
+      {"title": "Preach", "artist": "John Summit", "bpm": 126.0, "genre": ["tech house"], "label": "Defected", "duration_ms": 330000},
+      {"title": "Freaks", "artist": "Fisher", "bpm": 127.0, "genre": ["tech house"], "label": "Catch & Release", "duration_ms": 315000},
+      {"title": "Free Your Body", "artist": "Sonny Fodera & Dom Dolla", "bpm": 125.0, "genre": ["tech house"], "label": "Solotoko", "duration_ms": 330000},
+      {"title": "Turning of the Tide", "artist": "Chris Lake", "bpm": 126.0, "genre": ["tech house"], "label": "Black Book Records", "duration_ms": 360000},
+      {"title": "The Bomb", "artist": "Picard Brothers", "bpm": 126.0, "genre": ["tech house"], "label": "Club Sweat", "duration_ms": 300000},
+      {"title": "Beauty Sleep", "artist": "John Summit", "bpm": 126.0, "genre": ["tech house"], "label": "Experts Only", "duration_ms": 345000},
+      {"title": "In Chicago", "artist": "John Summit", "bpm": 127.0, "genre": ["tech house"], "label": "Experts Only", "duration_ms": 330000},
+      {"title": "Gecko (Overdrive)", "artist": "Oliver Heldens", "remix": "Tchami Remix", "bpm": 125.0, "genre": ["tech house"], "label": "Musical Freedom", "duration_ms": 345000},
+      {"title": "Miami", "artist": "Will Clarke", "bpm": 127.0, "genre": ["tech house"], "label": "Dirtybird", "duration_ms": 360000}
+    ]
+  },
+  {
+    "dj": "Dom Dolla",
+    "event": "Printworks London 2024",
+    "date": "2024-03-09",
+    "venue": "Printworks, London",
+    "source_url": "https://www.1001tracklists.com/tracklist/example4",
+    "tracks": [
+      {"title": "Rhyme Dust", "artist": "MK & Dom Dolla", "bpm": 126.0, "genre": ["tech house"], "label": "Toolroom", "duration_ms": 345000},
+      {"title": "Free Your Body", "artist": "Sonny Fodera & Dom Dolla", "bpm": 125.0, "genre": ["tech house"], "label": "Solotoko", "duration_ms": 330000},
+      {"title": "San Frandisco", "artist": "Dom Dolla", "bpm": 124.0, "genre": ["tech house"], "label": "Sweat It Out", "duration_ms": 360000},
+      {"title": "Cola", "artist": "CamelPhat & Elderbrook", "bpm": 125.0, "genre": ["tech house"], "label": "Defected", "duration_ms": 360000},
+      {"title": "Losing It", "artist": "Fisher", "bpm": 126.0, "genre": ["tech house"], "label": "Catch & Release", "duration_ms": 390000},
+      {"title": "Pump the Brakes", "artist": "Dom Dolla", "bpm": 125.0, "genre": ["tech house"], "label": "Sweat It Out", "duration_ms": 330000},
+      {"title": "Preach", "artist": "John Summit", "bpm": 126.0, "genre": ["tech house"], "label": "Defected", "duration_ms": 330000},
+      {"title": "You Little Beauty", "artist": "Fisher", "bpm": 126.0, "genre": ["tech house"], "label": "Catch & Release", "duration_ms": 348000},
+      {"title": "Miracle Maker", "artist": "Dom Dolla & Cloonee", "bpm": 127.0, "genre": ["tech house"], "label": "Three Six Zero", "duration_ms": 318000},
+      {"title": "Turning of the Tide", "artist": "Chris Lake", "bpm": 126.0, "genre": ["tech house"], "label": "Black Book Records", "duration_ms": 360000},
+      {"title": "On My Mind", "artist": "Diplo & SIDEPIECE", "bpm": 125.0, "genre": ["tech house"], "label": "Higher Ground", "duration_ms": 285000},
+      {"title": "It Makes You Forget (Itgehane)", "artist": "Peggy Gou", "bpm": 124.0, "genre": ["tech house"], "label": "Gudu Records", "duration_ms": 375000},
+      {"title": "Stop It", "artist": "Fisher", "bpm": 126.0, "genre": ["tech house"], "label": "Catch & Release", "duration_ms": 330000}
+    ]
+  },
+  {
+    "dj": {
+      "name": "Fisher",
+      "genres": ["tech house"],
+      "profile_url": "https://www.1001tracklists.com/dj/fisher/index.html",
+      "set_count": 48
+    },
+    "event": "Defected Croatia 2024",
+    "date": "2024-08-10",
+    "venue": "The Garden, Tisno",
+    "source_url": "https://www.1001tracklists.com/tracklist/example5",
+    "tracks": [
+      {"title": "You Little Beauty", "artist": "Fisher", "bpm": 126.0, "genre": ["tech house"], "label": "Catch & Release", "duration_ms": 348000},
+      {"title": "Cola", "artist": "CamelPhat & Elderbrook", "bpm": 125.0, "genre": ["tech house"], "label": "Defected", "duration_ms": 360000},
+      {"title": "Preach", "artist": "John Summit", "bpm": 126.0, "genre": ["tech house"], "label": "Defected", "duration_ms": 330000},
+      {"title": "Rhyme Dust", "artist": "MK & Dom Dolla", "bpm": 126.0, "genre": ["tech house"], "label": "Toolroom", "duration_ms": 345000},
+      {"title": "Freaks", "artist": "Fisher", "bpm": 127.0, "genre": ["tech house"], "label": "Catch & Release", "duration_ms": 315000},
+      {"title": "Losing It", "artist": "Fisher", "bpm": 126.0, "genre": ["tech house"], "label": "Catch & Release", "duration_ms": 390000},
+      {"title": "Operator (Ring Ring)", "artist": "Chris Lake & Armand Van Helden", "bpm": 127.0, "genre": ["tech house"], "label": "Black Book Records", "duration_ms": 315000},
+      {"title": "Free Your Body", "artist": "Sonny Fodera & Dom Dolla", "bpm": 125.0, "genre": ["tech house"], "label": "Solotoko", "duration_ms": 330000},
+      {"title": "The Bomb", "artist": "Picard Brothers", "bpm": 126.0, "genre": ["tech house"], "label": "Club Sweat", "duration_ms": 300000},
+      {"title": "Just Hold On", "artist": "Fisher", "bpm": 126.0, "genre": ["tech house"], "label": "Catch & Release", "duration_ms": 342000},
+      {"title": "San Frandisco", "artist": "Dom Dolla", "bpm": 124.0, "genre": ["tech house"], "label": "Sweat It Out", "duration_ms": 360000}
+    ]
+  }
+]
