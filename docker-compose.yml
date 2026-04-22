@@ -1,0 +1,53 @@
+services:
+  neo4j:
+    image: neo4j:5-community
+    container_name: cuedrop-neo4j
+    ports:
+      - "7474:7474"  # Browser UI
+      - "7687:7687"  # Bolt protocol
+    environment:
+      NEO4J_AUTH: neo4j/cuedrop_dev
+      NEO4J_PLUGINS: '["apoc"]'
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    healthcheck:
+      test: ["CMD", "neo4j", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  essentia:
+    build: ./essentia-service
+    platform: linux/amd64  # Run x86 via Rosetta — essentia has no ARM build
+    container_name: cuedrop-essentia
+    ports:
+      - "8001:8001"
+
+  backend:
+    build: ./backend
+    container_name: cuedrop-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    environment:
+      - NEO4J_URI=bolt://neo4j:7687
+      - ESSENTIA_URL=http://essentia:8001
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: cuedrop-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+volumes:
+  neo4j_data:
+  neo4j_logs:

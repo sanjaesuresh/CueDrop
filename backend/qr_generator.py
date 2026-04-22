@@ -1,0 +1,1 @@
+"""Session QR code generation."""

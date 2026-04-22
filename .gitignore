@@ -1,0 +1,55 @@
+# Docs (internal)
+_docs
+
+# Node
+node_modules
+dist
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+.venv
+backend/.venv
+*.egg-info
+backend/cuedrop_backend.egg-info
+
+# Environment / Secrets
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# API keys, credentials, tokens
+*.pem
+*.key
+*.crt
+*.p12
+credentials.json
+service-account.json
+token.json
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker volumes
+neo4j_data
+neo4j_logs
+
+# Build artifacts
+*.log
+*.tmp
+
+# Claude Code
+.claude/projects
+.claude/todos
