@@ -8,11 +8,15 @@ import logging
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Response, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
+from backend.chat_handler import ChatHandler
 from backend.config import load_settings
-from backend.models import Source, TrackModel
+from backend.guest_handler import GuestHandler
+from backend.models import Session, SetState, Source, TrackModel
+from backend.qr_generator import generate as generate_qr
 from backend.queue_manager import QueueManager
 from backend.vdj_client import MockVDJClient, VDJClient, VDJClientProtocol
 
@@ -25,6 +29,10 @@ logger = logging.getLogger(__name__)
 settings = load_settings()
 queue_manager: QueueManager | None = None
 vdj: VDJClientProtocol | None = None
+chat_handler: ChatHandler | None = None
+guest_handler: GuestHandler | None = None
+session: Session | None = None
+set_state: SetState = SetState()
 
 
 # ---------------------------------------------------------------------------
@@ -71,9 +79,12 @@ async def _broadcast_queue(data: dict) -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
-    global queue_manager, vdj
+    global queue_manager, vdj, chat_handler, guest_handler, session
 
     queue_manager = QueueManager(on_change=_broadcast_queue)
+    chat_handler = ChatHandler(api_key=settings.anthropic_api_key)
+    guest_handler = GuestHandler()
+    session = Session()
 
     # Use real VDJ client if auth token is set, otherwise mock
     if settings.vdj_auth_token:
@@ -188,3 +199,99 @@ async def ws_guest(websocket: WebSocket, session_id: str):
             logger.debug("Guest WS message (session=%s): %s", session_id, data)
     except WebSocketDisconnect:
         guest_ws.disconnect(websocket)
+
+
+# ---------------------------------------------------------------------------
+# Chat
+# ---------------------------------------------------------------------------
+
+
+class ChatMessage(BaseModel):
+    text: str
+
+
+@app.post("/chat")
+async def chat(msg: ChatMessage):
+    result = await chat_handler.process_message(msg.text, set_state)
+    return {"intent": result.type, "data": result.data, "response": result.response}
+
+
+# ---------------------------------------------------------------------------
+# Guest requests
+# ---------------------------------------------------------------------------
+
+
+class GuestRequestBody(BaseModel):
+    track: TrackModel
+    session_id: str
+    device_id: str
+
+
+@app.post("/request/guest")
+async def guest_request(body: GuestRequestBody):
+    req = guest_handler.submit_request(body.track, body.session_id, body.device_id, set_state)
+    return req.model_dump(mode="json")
+
+
+# ---------------------------------------------------------------------------
+# Approval
+# ---------------------------------------------------------------------------
+
+
+@app.get("/requests/pending")
+async def pending_requests():
+    return [r.model_dump(mode="json") for r in guest_handler.get_pending()]
+
+
+@app.post("/approve/{request_id}")
+async def approve_request(request_id: str):
+    req = guest_handler.approve(request_id)
+    if req is None:
+        return {"error": "Request not found"}
+    if req.status.value == "approved":
+        await queue_manager.add_anchor(req.track, source=Source.GUEST)
+    return req.model_dump(mode="json")
+
+
+@app.post("/decline/{request_id}")
+async def decline_request(request_id: str, reason: str = "Declined by admin"):
+    req = guest_handler.decline(request_id, reason)
+    if req is None:
+        return {"error": "Request not found"}
+    return req.model_dump(mode="json")
+
+
+# ---------------------------------------------------------------------------
+# Session & QR
+# ---------------------------------------------------------------------------
+
+
+@app.get("/session/qr")
+async def session_qr():
+    png = generate_qr(session.id)
+    return Response(content=png, media_type="image/png")
+
+
+@app.get("/session/{session_id}")
+async def get_session(session_id: str):
+    return {
+        "id": session.id,
+        "name": session.name,
+        "genres": session.genres,
+        "now_playing": queue_manager.get_state().current.model_dump(mode="json")
+        if queue_manager.get_state().current
+        else None,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Settings
+# ---------------------------------------------------------------------------
+
+
+@app.put("/settings")
+async def update_settings(new_settings: dict):
+    for key, value in new_settings.items():
+        if hasattr(session.settings, key):
+            setattr(session.settings, key, value)
+    return session.settings.model_dump(mode="json")

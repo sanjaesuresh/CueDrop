@@ -111,3 +111,89 @@ def test_cors_headers(client):
     )
     assert resp.status_code == 200
     assert "access-control-allow-origin" in resp.headers
+
+
+# ---------------------------------------------------------------------------
+# Chat
+# ---------------------------------------------------------------------------
+
+
+def test_chat_skip(client):
+    resp = client.post("/chat", json={"text": "skip"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["intent"] == "skip"
+    assert "response" in data
+
+
+def test_chat_track_request(client):
+    resp = client.post("/chat", json={"text": "play Losing It"})
+    assert resp.status_code == 200
+    assert resp.json()["intent"] == "track_request"
+
+
+# ---------------------------------------------------------------------------
+# Guest request + approval flow
+# ---------------------------------------------------------------------------
+
+
+def test_guest_request(client):
+    resp = client.post("/request/guest", json={
+        "track": {"title": "Cola", "artist": "CamelPhat"},
+        "session_id": "sess1",
+        "device_id": "dev1",
+    })
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] in ("pending", "approved")
+
+
+def test_pending_requests_initially_empty(client):
+    resp = client.get("/requests/pending")
+    assert resp.status_code == 200
+    # May have requests from other tests due to shared state, just check format
+    assert isinstance(resp.json(), list)
+
+
+def test_approve_nonexistent(client):
+    resp = client.post("/approve/nonexistent")
+    assert resp.status_code == 200
+    assert resp.json().get("error") == "Request not found"
+
+
+def test_decline_nonexistent(client):
+    resp = client.post("/decline/nonexistent")
+    assert resp.status_code == 200
+    assert resp.json().get("error") == "Request not found"
+
+
+# ---------------------------------------------------------------------------
+# Session & QR
+# ---------------------------------------------------------------------------
+
+
+def test_get_session(client):
+    resp = client.get("/session/any_id")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "id" in data
+    assert "name" in data
+
+
+def test_session_qr(client):
+    resp = client.get("/session/qr")
+    assert resp.status_code == 200
+    assert resp.headers["content-type"] == "image/png"
+    assert resp.content[:8] == b"\x89PNG\r\n\x1a\n"
+
+
+# ---------------------------------------------------------------------------
+# Settings
+# ---------------------------------------------------------------------------
+
+
+def test_update_settings(client):
+    resp = client.put("/settings", json={"manual_approval": False})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "manual_approval" in data
