@@ -24,6 +24,13 @@ class Settings:
     # Anthropic (Claude)
     anthropic_api_key: str = ""
 
+    # Spotify
+    spotify_client_id: str = ""
+    spotify_client_secret: str = ""
+
+    # Local library
+    local_library_path: str = ""
+
     # ACRCloud
     acrcloud_access_key: str = ""
     acrcloud_access_secret: str = ""
@@ -53,6 +60,9 @@ def load_settings(env_path: str = "backend/.env") -> Settings:
         acrcloud_access_key=os.getenv("ACRCLOUD_ACCESS_KEY", Settings.acrcloud_access_key),
         acrcloud_access_secret=os.getenv("ACRCLOUD_ACCESS_SECRET", Settings.acrcloud_access_secret),
         acrcloud_host=os.getenv("ACRCLOUD_HOST", Settings.acrcloud_host),
+        spotify_client_id=os.getenv("SPOTIFY_CLIENT_ID", Settings.spotify_client_id),
+        spotify_client_secret=os.getenv("SPOTIFY_CLIENT_SECRET", Settings.spotify_client_secret),
+        local_library_path=os.getenv("LOCAL_LIBRARY_PATH", Settings.local_library_path),
         host=os.getenv("HOST", Settings.host),
         port=int(os.getenv("PORT", str(Settings.port))),
     )

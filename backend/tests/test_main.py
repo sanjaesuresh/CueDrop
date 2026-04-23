@@ -197,3 +197,50 @@ def test_update_settings(client):
     assert resp.status_code == 200
     data = resp.json()
     assert "manual_approval" in data
+
+
+# ---------------------------------------------------------------------------
+# Search (Spotify proxy)
+# ---------------------------------------------------------------------------
+
+
+def test_search_no_credentials(client):
+    """Without Spotify credentials, search returns empty list."""
+    resp = client.get("/search", params={"q": "Fisher Losing It"})
+    assert resp.status_code == 200
+    assert resp.json() == []
+
+
+def test_search_with_limit(client):
+    resp = client.get("/search", params={"q": "Cola", "limit": 5})
+    assert resp.status_code == 200
+    assert isinstance(resp.json(), list)
+
+
+# ---------------------------------------------------------------------------
+# Scraper endpoints
+# ---------------------------------------------------------------------------
+
+
+def test_learn_endpoint(client):
+    """learn_from_url will fail gracefully without playwright."""
+    resp = client.post("/learn", json={"url": "https://example.com/tracklist/1"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "url" in data
+    assert data["url"] == "https://example.com/tracklist/1"
+    assert data["success"] is False  # no playwright installed
+
+
+def test_scrape_endpoint_starts(client):
+    resp = client.post("/scrape", json={"genres": ["tech house"], "max_sets": 5})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "started"
+    assert data["max_sets"] == 5
+
+
+def test_scrape_default_body(client):
+    resp = client.post("/scrape", json={})
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "started"

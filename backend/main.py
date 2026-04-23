@@ -16,8 +16,10 @@ from backend.chat_handler import ChatHandler
 from backend.config import load_settings
 from backend.guest_handler import GuestHandler
 from backend.models import Session, SetState, Source, TrackModel
+from backend.music_resolver import MusicResolver
 from backend.qr_generator import generate as generate_qr
 from backend.queue_manager import QueueManager
+from backend.scraper_service import ScraperService
 from backend.vdj_client import MockVDJClient, VDJClient, VDJClientProtocol
 
 logger = logging.getLogger(__name__)
@@ -31,6 +33,8 @@ queue_manager: QueueManager | None = None
 vdj: VDJClientProtocol | None = None
 chat_handler: ChatHandler | None = None
 guest_handler: GuestHandler | None = None
+scraper_service: ScraperService | None = None
+music_resolver: MusicResolver | None = None
 session: Session | None = None
 set_state: SetState = SetState()
 
@@ -79,11 +83,17 @@ async def _broadcast_queue(data: dict) -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
-    global queue_manager, vdj, chat_handler, guest_handler, session
+    global queue_manager, vdj, chat_handler, guest_handler, scraper_service, music_resolver, session
 
     queue_manager = QueueManager(on_change=_broadcast_queue)
     chat_handler = ChatHandler(api_key=settings.anthropic_api_key)
     guest_handler = GuestHandler()
+    scraper_service = ScraperService()
+    music_resolver = MusicResolver(
+        local_library_path=settings.local_library_path,
+        spotify_client_id=settings.spotify_client_id,
+        spotify_client_secret=settings.spotify_client_secret,
+    )
     session = Session()
 
     # Use real VDJ client if auth token is set, otherwise mock
@@ -97,6 +107,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
     yield
 
+    if music_resolver:
+        await music_resolver.close()
     if vdj:
         await vdj.close()
 
@@ -295,3 +307,74 @@ async def update_settings(new_settings: dict):
         if hasattr(session.settings, key):
             setattr(session.settings, key, value)
     return session.settings.model_dump(mode="json")
+
+
+# ---------------------------------------------------------------------------
+# Search (guest Spotify proxy)
+# ---------------------------------------------------------------------------
+
+
+@app.get("/search")
+async def search(q: str, limit: int = 10):
+    results = await music_resolver.search(q, limit=limit)
+    return [
+        {
+            "spotify_id": r.spotify_id,
+            "title": r.title,
+            "artist": r.artist,
+            "album": r.album,
+            "duration_ms": r.duration_ms,
+            "preview_url": r.preview_url,
+        }
+        for r in results
+    ]
+
+
+# ---------------------------------------------------------------------------
+# Scraper endpoints
+# ---------------------------------------------------------------------------
+
+
+class LearnBody(BaseModel):
+    url: str
+
+
+@app.post("/learn")
+async def learn_from_url(body: LearnBody):
+    report = await scraper_service.learn_from_url(body.url)
+    return {
+        "url": report.url,
+        "tracks_found": report.tracks_found,
+        "transitions_created": report.transitions_created,
+        "success": report.success,
+        "error": report.error,
+    }
+
+
+class ScrapeBody(BaseModel):
+    genres: list[str] | None = None
+    max_sets: int = 100
+
+
+@app.post("/scrape")
+async def run_scrape(body: ScrapeBody):
+    if scraper_service.is_running:
+        return {"error": "Crawl already in progress"}
+
+    # Run as background task
+    asyncio.create_task(_run_crawl(body.genres, body.max_sets))
+    return {"status": "started", "genres": body.genres, "max_sets": body.max_sets}
+
+
+async def _run_crawl(genres: list[str] | None, max_sets: int) -> None:
+    report = await scraper_service.run_full_crawl(genres=genres, max_sets=max_sets)
+    await admin_ws.broadcast({
+        "type": "crawl_complete",
+        "data": {
+            "sets_discovered": report.sets_discovered,
+            "sets_parsed": report.sets_parsed,
+            "tracks_imported": report.tracks_imported,
+            "transitions_created": report.transitions_created,
+            "errors": report.errors,
+        },
+    })
