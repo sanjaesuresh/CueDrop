@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 
-from backend.camelot import compatibility_score
+from backend.camelot import compatibility_score, is_compatible
 from backend.models import Phase, SetState, TrackModel
 
 logger = logging.getLogger(__name__)
@@ -182,3 +182,143 @@ def find_slot(queue_length: int, avg_track_mins: float = 5.0) -> SlotResult:
     eta = position * avg_track_mins
     confidence = 0.7 if position < 5 else 0.4
     return SlotResult(position=position, eta_mins=eta, confidence=confidence)
+
+
+# ---------------------------------------------------------------------------
+# Bridge path finding
+# ---------------------------------------------------------------------------
+
+MAX_BPM_DELTA_PER_HOP = 3.0
+
+
+@dataclass
+class BridgeResult:
+    """Result of bridge path finding."""
+
+    path: list[dict]  # intermediate tracks (excludes from/to)
+    total_cost: float
+    feasible: bool
+
+
+def _hop_cost(from_track: dict, to_track: dict) -> float:
+    """Compute cost of a single hop between two tracks.
+
+    Lower is better. Factors: BPM delta, key compatibility, energy smoothness.
+    Returns float('inf') if hop violates hard constraints.
+    """
+    from_bpm = from_track.get("bpm") or 0
+    to_bpm = to_track.get("bpm") or 0
+
+    # Hard constraint: BPM shift per hop
+    if from_bpm and to_bpm:
+        bpm_delta = abs(from_bpm - to_bpm)
+        if bpm_delta > MAX_BPM_DELTA_PER_HOP:
+            return float("inf")
+        bpm_cost = bpm_delta / MAX_BPM_DELTA_PER_HOP
+    else:
+        bpm_cost = 0.5  # unknown BPM, neutral
+
+    # Key compatibility
+    from_key = from_track.get("key", "")
+    to_key = to_track.get("key", "")
+    if from_key and to_key:
+        key_cost = 1.0 - compatibility_score(from_key, to_key)
+    else:
+        key_cost = 0.3  # neutral
+
+    # Energy smoothness
+    from_energy = from_track.get("energy") or 0.5
+    to_energy = to_track.get("energy") or 0.5
+    energy_cost = abs(from_energy - to_energy)
+
+    # Inverse frequency — prefer popular transitions
+    freq = to_track.get("frequency", 1)
+    freq_bonus = min(1.0, freq / 10.0)  # cap at 10
+    freq_cost = 1.0 - freq_bonus
+
+    return bpm_cost * 0.35 + key_cost * 0.30 + energy_cost * 0.15 + freq_cost * 0.20
+
+
+def build_bridge_path(
+    from_track: dict,
+    to_track: dict,
+    graph_neighbors_fn,
+    max_hops: int = 4,
+) -> BridgeResult:
+    """Find intermediate tracks to bridge from one track to another.
+
+    Uses beam search (width=10) through the graph, scoring each candidate
+    path by cumulative hop cost. Prefers paths that gradually shift BPM
+    and maintain harmonic compatibility.
+
+    Args:
+        from_track: Starting track dict (must have id, bpm, key, energy).
+        to_track: Target track dict.
+        graph_neighbors_fn: Callable(track_id) -> list[dict] returning neighbors.
+        max_hops: Maximum intermediate tracks (default 4).
+
+    Returns:
+        BridgeResult with the best path found.
+    """
+    if not from_track or not to_track:
+        return BridgeResult(path=[], total_cost=float("inf"), feasible=False)
+
+    from_id = from_track.get("id", "")
+    to_id = to_track.get("id", "")
+
+    if from_id == to_id:
+        return BridgeResult(path=[], total_cost=0.0, feasible=True)
+
+    # Check if direct hop is feasible
+    direct_cost = _hop_cost(from_track, to_track)
+    if direct_cost < float("inf"):
+        return BridgeResult(path=[], total_cost=direct_cost, feasible=True)
+
+    beam_width = 10
+    # Each beam entry: (total_cost, [intermediate_track_dicts], last_track_dict)
+    beam: list[tuple[float, list[dict], dict]] = [(0.0, [], from_track)]
+    best_result = BridgeResult(path=[], total_cost=float("inf"), feasible=False)
+    visited_global: set[str] = {from_id}
+
+    for hop in range(max_hops):
+        candidates: list[tuple[float, list[dict], dict]] = []
+
+        for cost_so_far, path_so_far, last_track in beam:
+            last_id = last_track.get("id", "")
+            neighbors = graph_neighbors_fn(last_id)
+
+            for neighbor in neighbors:
+                n_id = neighbor.get("id", "")
+                if n_id in visited_global or n_id == from_id:
+                    continue
+
+                hop_c = _hop_cost(last_track, neighbor)
+                if hop_c == float("inf"):
+                    continue
+
+                new_cost = cost_so_far + hop_c
+                new_path = path_so_far + [neighbor]
+
+                # Check if this neighbor can reach the target
+                final_hop = _hop_cost(neighbor, to_track)
+                if final_hop < float("inf"):
+                    total = new_cost + final_hop
+                    if total < best_result.total_cost:
+                        best_result = BridgeResult(
+                            path=new_path, total_cost=total, feasible=True
+                        )
+
+                candidates.append((new_cost, new_path, neighbor))
+
+        if not candidates:
+            break
+
+        # Keep top beam_width candidates
+        candidates.sort(key=lambda c: c[0])
+        beam = candidates[:beam_width]
+
+        # Track visited to avoid cycles
+        for _, _, last in beam:
+            visited_global.add(last.get("id", ""))
+
+    return best_result
