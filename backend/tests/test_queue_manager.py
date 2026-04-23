@@ -10,8 +10,8 @@ from backend.models import Layer, QueueEntryStatus, Source, TrackModel, Transiti
 from backend.queue_manager import QueueManager
 
 
-def _track(name: str = "Test") -> TrackModel:
-    return TrackModel(title=name, artist="Artist")
+def _track(name: str = "Test", bpm: float | None = None) -> TrackModel:
+    return TrackModel(title=name, artist="Artist", bpm=bpm)
 
 
 # ---------------------------------------------------------------------------
@@ -211,12 +211,99 @@ async def test_replan_orders_by_priority():
     qm = QueueManager()
     await qm.add_anchor(_track("Anchor"))
     await qm.lock_next(_track("Locked"))
-    # After lock_next, Locked is at 0, Anchor shifted to 1
 
     state = await qm.replan()
-    # Replan should put locked first, then anchors
     assert state.entries[0].layer == Layer.LOCKED
     assert state.entries[1].layer == Layer.ANCHOR
+
+
+@pytest.mark.asyncio
+async def test_replan_admin_before_guest_anchors():
+    qm = QueueManager()
+    await qm.add_anchor(_track("Guest"), source=Source.GUEST)
+    await qm.add_anchor(_track("Admin"), source=Source.ADMIN)
+
+    state = await qm.replan()
+    assert state.entries[0].track.title == "Admin"
+    assert state.entries[1].track.title == "Guest"
+
+
+@pytest.mark.asyncio
+async def test_replan_promotes_wildcard_matching_bpm():
+    qm = QueueManager()
+    await qm.add_anchor(_track("Anchor", bpm=126.0), source=Source.ADMIN)
+    await qm.park_wildcard(_track("Wild", bpm=128.0))  # within ±5
+
+    state = await qm.replan()
+    # Wildcard should be promoted to anchor and appear in entries
+    titles = [e.track.title for e in state.entries]
+    assert "Wild" in titles
+    assert len(state.wildcards) == 0
+
+
+@pytest.mark.asyncio
+async def test_replan_keeps_wildcard_when_bpm_too_far():
+    qm = QueueManager()
+    await qm.add_anchor(_track("Anchor", bpm=126.0), source=Source.ADMIN)
+    await qm.park_wildcard(_track("Wild", bpm=140.0))  # too far
+
+    state = await qm.replan()
+    titles = [e.track.title for e in state.entries]
+    assert "Wild" not in titles
+    assert len(state.wildcards) == 1
+
+
+@pytest.mark.asyncio
+async def test_replan_wildcard_uses_current_bpm_when_no_anchors():
+    qm = QueueManager()
+    await qm.lock_next(_track("Playing", bpm=125.0))
+    await qm.advance()  # now "Playing" is current
+    await qm.park_wildcard(_track("Wild", bpm=127.0))  # within ±5
+
+    state = await qm.replan()
+    titles = [e.track.title for e in state.entries]
+    assert "Wild" in titles
+
+
+@pytest.mark.asyncio
+async def test_replan_no_promotion_without_bpm_reference():
+    qm = QueueManager()
+    await qm.park_wildcard(_track("Wild", bpm=128.0))
+
+    state = await qm.replan()
+    assert len(state.wildcards) == 1
+    assert len(state.entries) == 0
+
+
+@pytest.mark.asyncio
+async def test_replan_max_queue_depth():
+    qm = QueueManager()
+    for i in range(25):
+        await qm.add_anchor(_track(f"T{i}"), source=Source.ADMIN)
+
+    state = await qm.replan(max_queue_depth=10)
+    assert len(state.entries) == 10
+
+
+@pytest.mark.asyncio
+async def test_replan_preserves_soft_after_anchors():
+    qm = QueueManager()
+    await qm.add_anchor(_track("Anchor"), source=Source.ADMIN)
+    # Manually add a soft entry
+    from backend.models import QueueEntry
+    soft_entry = QueueEntry(
+        track=_track("Soft"),
+        position=1,
+        layer=Layer.SOFT,
+        source=Source.AI,
+    )
+    qm._state.entries.append(soft_entry)
+
+    state = await qm.replan()
+    layers = [e.layer for e in state.entries]
+    anchor_idx = layers.index(Layer.ANCHOR)
+    soft_idx = layers.index(Layer.SOFT)
+    assert anchor_idx < soft_idx
 
 
 # ---------------------------------------------------------------------------

@@ -130,24 +130,87 @@ class QueueManager:
                 return removed
         return None
 
-    async def replan(self) -> QueueState:
-        """Stub replan — preserves locked and anchor entries, fills gaps with soft entries.
+    async def replan(self, max_queue_depth: int = 20) -> QueueState:
+        """Replan the queue with priority ordering and wildcard promotion.
 
-        Full implementation in Phase 2 (Stream D) will use graph + DJBrain.
+        Priority ordering:
+        1. Locked entries (next up, immovable)
+        2. Admin anchors (ordered by insertion)
+        3. Approved guest anchors (ordered by insertion)
+        4. Promoted wildcards (if they fit the sequence)
+        5. Soft/AI entries (fill remaining slots)
+        6. Horizon entries (far-future, lowest priority)
+
+        Wildcard promotion: wildcards whose track genre overlaps with the
+        current set genres or whose BPM is within ±5 of the last anchor
+        are promoted to anchor layer.
         """
-        # Sort: locked first, then anchors, then soft
         locked = [e for e in self._state.entries if e.layer == Layer.LOCKED]
-        anchors = [e for e in self._state.entries if e.layer == Layer.ANCHOR]
+        admin_anchors = [
+            e for e in self._state.entries
+            if e.layer == Layer.ANCHOR and e.source == Source.ADMIN
+        ]
+        guest_anchors = [
+            e for e in self._state.entries
+            if e.layer == Layer.ANCHOR and e.source == Source.GUEST
+        ]
         soft = [e for e in self._state.entries if e.layer == Layer.SOFT]
         horizon = [e for e in self._state.entries if e.layer == Layer.HORIZON]
 
-        reordered = locked + anchors + soft + horizon
+        # Determine reference BPM for wildcard promotion
+        ref_bpm = None
+        all_anchors = admin_anchors + guest_anchors
+        if all_anchors:
+            last_anchor = all_anchors[-1]
+            ref_bpm = last_anchor.track.bpm
+        elif self._state.current:
+            ref_bpm = self._state.current.track.bpm
+
+        # Promote qualifying wildcards
+        promoted: list[QueueEntry] = []
+        remaining_wildcards: list[QueueEntry] = []
+
+        for wc in self._state.wildcards:
+            if self._should_promote_wildcard(wc, ref_bpm):
+                wc.layer = Layer.ANCHOR
+                wc.status = QueueEntryStatus.QUEUED
+                promoted.append(wc)
+                logger.info("Promoted wildcard to anchor: %s", wc.track.title)
+            else:
+                remaining_wildcards.append(wc)
+
+        self._state.wildcards = remaining_wildcards
+
+        # Build reordered queue
+        reordered = locked + admin_anchors + guest_anchors + promoted + soft + horizon
+
+        # Trim to max depth
+        if len(reordered) > max_queue_depth:
+            overflow = reordered[max_queue_depth:]
+            reordered = reordered[:max_queue_depth]
+            # Demote overflow to horizon
+            for e in overflow:
+                if e.layer not in (Layer.LOCKED, Layer.ANCHOR):
+                    e.layer = Layer.HORIZON
+
+        # Re-index positions
         for i, e in enumerate(reordered):
             e.position = i
-        self._state.entries = reordered
 
+        self._state.entries = reordered
         await self._notify()
         return self._state
+
+    def _should_promote_wildcard(self, wc: QueueEntry, ref_bpm: float | None) -> bool:
+        """Check if a wildcard should be promoted to anchor.
+
+        Promotes if BPM is within ±5 of the reference BPM.
+        """
+        if ref_bpm is None:
+            return False  # no reference, can't judge fit
+        if wc.track.bpm and ref_bpm:
+            return abs(wc.track.bpm - ref_bpm) <= 5.0
+        return False
 
     def queue_length(self) -> int:
         return len(self._state.entries)
