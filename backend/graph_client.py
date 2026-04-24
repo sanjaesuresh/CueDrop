@@ -226,6 +226,40 @@ class GraphClient:
                 "djs": record["djs"],
             }
 
+    async def update_edge_weight(
+        self,
+        from_id: str,
+        to_id: str,
+        self_play_quality: float,
+    ) -> None:
+        """Update the self_play_quality score on a transition edge."""
+        query = """
+        MATCH (a:Track {track_id: $from_id})-[r:TRANSITIONS_TO]->(b:Track {track_id: $to_id})
+        SET r.self_play_quality = $self_play_quality
+        """
+        async with self._driver.session() as session:
+            await session.run(query, {
+                "from_id": from_id,
+                "to_id": to_id,
+                "self_play_quality": self_play_quality,
+            })
+
+    async def get_edge(self, from_id: str, to_id: str) -> dict | None:
+        """Return transition edge properties, or None."""
+        query = """
+        MATCH (a:Track {track_id: $from_id})-[r:TRANSITIONS_TO]->(b:Track {track_id: $to_id})
+        RETURN r.frequency AS frequency,
+               r.bpm_delta AS bpm_delta,
+               r.sources AS sources,
+               r.self_play_quality AS self_play_quality
+        """
+        async with self._driver.session() as session:
+            result = await session.run(query, {"from_id": from_id, "to_id": to_id})
+            record = await result.single()
+            if record is None:
+                return None
+            return dict(record)
+
     async def search_tracks(
         self, query: str, limit: int = 10
     ) -> list[dict]:
