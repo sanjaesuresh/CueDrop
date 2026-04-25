@@ -17,9 +17,11 @@ from backend.config import load_settings
 from backend.guest_handler import GuestHandler
 from backend.models import Session, SetState, Source, TrackModel
 from backend.music_resolver import MusicResolver
+from backend.orchestrator import DJOrchestrator
 from backend.qr_generator import generate as generate_qr
 from backend.queue_manager import QueueManager
 from backend.scraper_service import ScraperService
+from backend.transition_logger import TransitionLogger
 from backend.vdj_client import MockVDJClient, VDJClient, VDJClientProtocol
 
 logger = logging.getLogger(__name__)
@@ -35,6 +37,7 @@ chat_handler: ChatHandler | None = None
 guest_handler: GuestHandler | None = None
 scraper_service: ScraperService | None = None
 music_resolver: MusicResolver | None = None
+orchestrator: DJOrchestrator | None = None
 session: Session | None = None
 set_state: SetState = SetState()
 
@@ -83,7 +86,7 @@ async def _broadcast_queue(data: dict) -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
-    global queue_manager, vdj, chat_handler, guest_handler, scraper_service, music_resolver, session
+    global queue_manager, vdj, chat_handler, guest_handler, scraper_service, music_resolver, orchestrator, session
 
     queue_manager = QueueManager(on_change=_broadcast_queue)
     chat_handler = ChatHandler(api_key=settings.anthropic_api_key)
@@ -102,6 +105,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     else:
         vdj = MockVDJClient()
         logger.info("Using MockVDJClient (no VDJ_AUTH_TOKEN set)")
+
+    orchestrator = DJOrchestrator(queue_manager=queue_manager, vdj_client=vdj)
 
     logger.info("CueDrop started — VDJ: %s", type(vdj).__name__)
 
@@ -156,10 +161,12 @@ async def admin_request(track: TrackModel):
 
 @app.post("/skip")
 async def skip():
-    next_entry = await queue_manager.advance()
-    if next_entry:
-        return {"status": "skipped", "now_playing": next_entry.model_dump(mode="json")}
-    return {"status": "queue_empty"}
+    return await orchestrator.handle_skip(set_state)
+
+
+@app.post("/tick")
+async def tick():
+    return await orchestrator.tick(set_state)
 
 
 # ---------------------------------------------------------------------------
@@ -225,7 +232,8 @@ class ChatMessage(BaseModel):
 @app.post("/chat")
 async def chat(msg: ChatMessage):
     result = await chat_handler.process_message(msg.text, set_state)
-    return {"intent": result.type, "data": result.data, "response": result.response}
+    action = await orchestrator.handle_chat_intent(result, set_state)
+    return {"intent": result.type, "data": result.data, "response": result.response, "action": action}
 
 
 # ---------------------------------------------------------------------------
