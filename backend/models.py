@@ -85,6 +85,7 @@ class TrackModel(BaseModel):
     outro_bars: int | None = None
     duration_ms: int | None = None
     label: str | None = None
+    has_vocals_at: list[list[int]] = []  # [[start_ms, end_ms], ...] vocal time ranges
     has_dj_edit: bool | None = None
     dj_edit_bpm: float | None = None
 
