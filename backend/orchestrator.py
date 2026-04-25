@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 
+from backend.edge_reweighter import compute_edge_weight
 from backend.models import SetState, Source, TrackModel
 from backend.queue_manager import QueueManager
 from backend.transition_logger import QualitySignal, TransitionLogger
@@ -13,6 +14,9 @@ logger = logging.getLogger(__name__)
 
 # Minimum queue entries before auto-fill triggers
 MIN_QUEUE_DEPTH = 3
+
+# How often the learning cycle runs (every N ticks)
+LEARNING_CYCLE_INTERVAL = 10
 
 
 class DJOrchestrator:
@@ -24,17 +28,22 @@ class DJOrchestrator:
         vdj_client: VDJClientProtocol,
         transition_logger: TransitionLogger | None = None,
         graph_client=None,
+        edge_reweighter=None,
     ) -> None:
         self._queue = queue_manager
         self._vdj = vdj_client
         self._logger = transition_logger or TransitionLogger()
         self._graph = graph_client
+        self._edge_reweighter = edge_reweighter
+        self._tick_count: int = 0
+        self._last_learning_index: int = 0
 
     async def tick(self, set_state: SetState) -> dict:
         """Periodic tick — fill queue if low, execute transitions if ready.
 
         Returns a status dict describing what actions were taken.
         """
+        self._tick_count += 1
         actions: list[str] = []
 
         # Fill queue if running low
@@ -48,6 +57,12 @@ class DJOrchestrator:
         if state.current is None and state.entries:
             await self.execute_transition(set_state)
             actions.append("started playback")
+
+        # Periodic learning cycle
+        if self._tick_count % LEARNING_CYCLE_INTERVAL == 0:
+            updated = await self.run_learning_cycle()
+            if updated > 0:
+                actions.append(f"learning: updated {updated} edges")
 
         return {"actions": actions, "queue_length": self._queue.queue_length()}
 
@@ -149,7 +164,89 @@ class DJOrchestrator:
             # Add completion signal for the previous track (it played to the end)
             self._logger.add_signal_to_latest(QualitySignal.COMPLETION)
 
+            # Trigger edge reweighting if available
+            await self._reweight_latest_transition()
+
         return True
+
+    async def _reweight_latest_transition(self) -> bool:
+        """Reweight the edge for the most recent logged transition.
+
+        Returns True if the edge weight was updated.
+        """
+        if self._edge_reweighter is None or self._graph is None:
+            return False
+
+        logs = self._logger.get_recent(1)
+        if not logs:
+            return False
+
+        latest = logs[0]
+        if not latest.signals:
+            return False
+
+        quality = self._logger.get_edge_quality(
+            latest.from_track_id, latest.to_track_id
+        )
+
+        try:
+            await self._graph.update_edge_weight(
+                from_id=latest.from_track_id,
+                to_id=latest.to_track_id,
+                self_play_quality=quality,
+            )
+            logger.debug(
+                "Reweighted edge %s -> %s: quality=%.3f",
+                latest.from_track_id,
+                latest.to_track_id,
+                quality,
+            )
+            return True
+        except Exception as exc:
+            logger.warning("Edge reweight failed: %s", exc)
+            return False
+
+    async def run_learning_cycle(self) -> int:
+        """Process recent transition logs and update edge weights.
+
+        Processes all logs since the last learning cycle.
+        Returns the count of edges updated.
+        """
+        if self._edge_reweighter is None or self._graph is None:
+            return 0
+
+        all_logs = self._logger.get_logs()
+        pending = all_logs[self._last_learning_index:]
+        self._last_learning_index = len(all_logs)
+
+        updated = 0
+        for log in pending:
+            if not log.signals:
+                continue
+
+            quality = self._logger.get_edge_quality(
+                log.from_track_id, log.to_track_id
+            )
+
+            try:
+                await self._graph.update_edge_weight(
+                    from_id=log.from_track_id,
+                    to_id=log.to_track_id,
+                    self_play_quality=quality,
+                )
+                updated += 1
+            except Exception as exc:
+                logger.warning(
+                    "Learning cycle reweight failed for %s -> %s: %s",
+                    log.from_track_id,
+                    log.to_track_id,
+                    exc,
+                )
+
+        if updated:
+            logger.info("Learning cycle: updated %d edge weights", updated)
+
+        return updated
 
     async def handle_skip(self, set_state: SetState) -> dict:
         """Handle a skip request — advance queue and log skip signal."""
