@@ -322,6 +322,144 @@ async def test_search_tracks(client_and_mocks):
 
 
 # ---------------------------------------------------------------------------
+# find_path
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_find_path_basic(client_and_mocks):
+    """Test basic shortest path without constraints."""
+    client, session, run_result, _ = client_and_mocks
+
+    path_nodes = [
+        {"track_id": "src", "title": "Source", "bpm": 120.0},
+        {"track_id": "mid", "title": "Middle", "bpm": 122.0},
+        {"track_id": "tgt", "title": "Target", "bpm": 120.0},
+    ]
+    run_result.single.return_value = {"path_nodes": path_nodes}
+
+    result = await client.find_path("src", "tgt", max_hops=5)
+
+    assert len(result) == 3
+    assert result[0]["track_id"] == "src"
+    assert result[1]["track_id"] == "mid"
+    assert result[2]["track_id"] == "tgt"
+
+    query = session.run.call_args.args[0]
+    params = session.run.call_args.args[1]
+    assert "shortestPath" in query
+    assert "TRANSITIONS_TO" in query
+    assert params["source_id"] == "src"
+    assert params["target_id"] == "tgt"
+
+
+@pytest.mark.asyncio
+async def test_find_path_no_path(client_and_mocks):
+    """Test when no path exists."""
+    client, session, run_result, _ = client_and_mocks
+
+    run_result.single.return_value = None
+
+    result = await client.find_path("src", "tgt")
+
+    assert result == []
+
+
+@pytest.mark.asyncio
+async def test_find_path_with_bpm_range(client_and_mocks):
+    """Test path finding with BPM range constraint."""
+    client, session, run_result, _ = client_and_mocks
+
+    path_nodes = [
+        {"track_id": "src", "title": "Source", "bpm": 120.0},
+        {"track_id": "tgt", "title": "Target", "bpm": 125.0},
+    ]
+    run_result.single.return_value = {"path_nodes": path_nodes}
+
+    result = await client.find_path(
+        "src", "tgt", max_hops=5, bpm_range=(118.0, 130.0)
+    )
+
+    assert len(result) == 2
+    query = session.run.call_args.args[0]
+    params = session.run.call_args.args[1]
+
+    assert "ALL(node IN nodes(path)" in query
+    assert "node.bpm >= $min_bpm" in query
+    assert "node.bpm <= $max_bpm" in query
+    assert params["min_bpm"] == 118.0
+    assert params["max_bpm"] == 130.0
+
+
+@pytest.mark.asyncio
+async def test_find_path_with_energy_delta(client_and_mocks):
+    """Test path finding with max energy delta constraint."""
+    client, session, run_result, _ = client_and_mocks
+
+    path_nodes = [
+        {"track_id": "src", "title": "Source", "energy": 7.0},
+        {"track_id": "mid", "title": "Middle", "energy": 8.0},
+        {"track_id": "tgt", "title": "Target", "energy": 7.5},
+    ]
+    run_result.single.return_value = {"path_nodes": path_nodes}
+
+    result = await client.find_path("src", "tgt", max_hops=5, max_energy_delta=2.0)
+
+    assert len(result) == 3
+    query = session.run.call_args.args[0]
+    params = session.run.call_args.args[1]
+
+    assert "abs(nodes(path)[i].energy - nodes(path)[i+1].energy)" in query
+    assert "$max_energy_delta" in query
+    assert params["max_energy_delta"] == 2.0
+
+
+@pytest.mark.asyncio
+async def test_find_path_with_multiple_constraints(client_and_mocks):
+    """Test path finding with multiple constraints applied."""
+    client, session, run_result, _ = client_and_mocks
+
+    path_nodes = [
+        {"track_id": "src", "title": "Source", "bpm": 120.0, "energy": 7.0},
+        {"track_id": "tgt", "title": "Target", "bpm": 125.0, "energy": 8.0},
+    ]
+    run_result.single.return_value = {"path_nodes": path_nodes}
+
+    result = await client.find_path(
+        "src",
+        "tgt",
+        max_hops=5,
+        bpm_range=(118.0, 130.0),
+        max_energy_delta=1.5,
+    )
+
+    assert len(result) == 2
+    query = session.run.call_args.args[0]
+    params = session.run.call_args.args[1]
+
+    # Both constraints should be in query and combined with AND
+    assert query.count("AND") >= 1
+    assert params["min_bpm"] == 118.0
+    assert params["max_bpm"] == 130.0
+    assert params["max_energy_delta"] == 1.5
+
+
+@pytest.mark.asyncio
+async def test_find_path_custom_max_hops(client_and_mocks):
+    """Test that max_hops is properly incorporated into the path pattern."""
+    client, session, run_result, _ = client_and_mocks
+
+    path_nodes = [{"track_id": "src"}, {"track_id": "tgt"}]
+    run_result.single.return_value = {"path_nodes": path_nodes}
+
+    await client.find_path("src", "tgt", max_hops=3)
+
+    query = session.run.call_args.args[0]
+    # Should have {0,3} in the relationship pattern
+    assert "{0,3}" in query
+
+
+# ---------------------------------------------------------------------------
 # close
 # ---------------------------------------------------------------------------
 

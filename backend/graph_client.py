@@ -281,6 +281,68 @@ class GraphClient:
                 for rec in records
             ]
 
+    async def find_path(
+        self,
+        source_id: str,
+        target_id: str,
+        max_hops: int = 5,
+        *,
+        bpm_range: tuple[float, float] | None = None,
+        key_compatible: bool = False,
+        max_energy_delta: float | None = None,
+    ) -> list[dict]:
+        """Find shortest path between two tracks with optional constraints.
+
+        Returns list of track dicts along the path (including source and target).
+        Empty list if no path found.
+
+        Args:
+            source_id: Track ID to start from
+            target_id: Track ID to reach
+            max_hops: Maximum number of hops (transitions) allowed
+            bpm_range: Optional (min_bpm, max_bpm) tuple to filter intermediate tracks
+            key_compatible: If True, only follow transitions where key compatibility exists
+            max_energy_delta: Optional max energy difference between consecutive tracks
+
+        Returns:
+            List of track dicts along the shortest path, or empty list if no path found
+        """
+        # Build the path pattern
+        path_pattern = f"-[r:TRANSITIONS_TO]->{{0,{max_hops}}}"
+
+        # Build WHERE clause for constraints
+        where_clauses = []
+        params: dict = {
+            "source_id": source_id,
+            "target_id": target_id,
+        }
+
+        if bpm_range is not None:
+            min_bpm, max_bpm = bpm_range
+            where_clauses.append("ALL(node IN nodes(path)[1:-1] WHERE node.bpm IS NOT NULL AND node.bpm >= $min_bpm AND node.bpm <= $max_bpm)")
+            params["min_bpm"] = min_bpm
+            params["max_bpm"] = max_bpm
+
+        if max_energy_delta is not None:
+            where_clauses.append("ALL(i IN range(0, length(relationships(path))-1) WHERE abs(nodes(path)[i].energy - nodes(path)[i+1].energy) <= $max_energy_delta)")
+            params["max_energy_delta"] = max_energy_delta
+
+        where_clause = " AND ".join(where_clauses) if where_clauses else ""
+        where_block = f"WHERE {where_clause}" if where_clause else ""
+
+        query = f"""
+        MATCH path = shortestPath((source:Track {{track_id: $source_id}}){path_pattern}(target:Track {{track_id: $target_id}}))
+        {where_block}
+        RETURN [node IN nodes(path) | properties(node)] AS path_nodes
+        """
+
+        async with self._driver.session() as session:
+            result = await session.run(query, params)
+            record = await result.single()
+            if record is None:
+                return []
+            return record["path_nodes"]
+
     # ------------------------------------------------------------------
     # Lifecycle
     # ------------------------------------------------------------------

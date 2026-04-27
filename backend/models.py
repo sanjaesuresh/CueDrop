@@ -88,6 +88,7 @@ class TrackModel(BaseModel):
     has_vocals_at: list[list[int]] = []  # [[start_ms, end_ms], ...] vocal time ranges
     has_dj_edit: bool | None = None
     dj_edit_bpm: float | None = None
+    danceability: float = 0.0
 
     @model_validator(mode="after")
     def set_track_id(self) -> TrackModel:

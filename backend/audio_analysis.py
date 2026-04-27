@@ -6,6 +6,7 @@ import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import httpx
 import librosa
 import numpy as np
 
@@ -85,6 +86,7 @@ class TrackFeatures:
     duration_s: float = 0.0
     has_tempo_drift: bool = False
     beat_grid_confidence: float = 1.0
+    danceability: float = 0.0
     error: str | None = None
 
 
@@ -233,6 +235,60 @@ def _check_tempo_drift(y: np.ndarray, sr: int, bpm: float) -> tuple[bool, float]
     confidence = max(0.0, min(1.0, 1.0 - bpm_std / 5.0))
 
     return has_drift, confidence
+
+
+# ---------------------------------------------------------------------------
+# Essentia enrichment
+# ---------------------------------------------------------------------------
+
+
+async def enrich_with_essentia(
+    features: TrackFeatures,
+    file_path: str,
+    essentia_url: str,
+) -> TrackFeatures:
+    """Enrich TrackFeatures with Essentia-derived key detection and danceability.
+
+    POSTs the audio file to ``{essentia_url}/analyze`` and updates:
+    - ``features.key`` — formatted as "{key} {scale}" (e.g. "C minor")
+    - ``features.key_confidence`` — essentia's ``key_strength`` value
+    - ``features.danceability`` — essentia's danceability score
+
+    If the service is unavailable or returns an error the original features
+    are returned unchanged (graceful degradation).
+
+    Args:
+        features: TrackFeatures already populated by the librosa pipeline.
+        file_path: Local path to the audio file to upload.
+        essentia_url: Base URL of the Essentia microservice (no trailing slash).
+
+    Returns:
+        The (possibly enriched) TrackFeatures object.
+    """
+    url = f"{essentia_url}/analyze"
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            with open(file_path, "rb") as fh:
+                response = await client.post(
+                    url,
+                    files={"file": (Path(file_path).name, fh, "application/octet-stream")},
+                )
+            response.raise_for_status()
+            data = response.json()
+
+        key = data.get("key", "")
+        scale = data.get("scale", "")
+        if key and scale:
+            features.key = f"{key} {scale}"
+        if "key_strength" in data:
+            features.key_confidence = float(data["key_strength"])
+        if "danceability" in data:
+            features.danceability = float(data["danceability"])
+
+    except (httpx.HTTPError, OSError, KeyError, ValueError) as exc:
+        logger.warning("Essentia enrichment unavailable for %s: %s", file_path, exc)
+
+    return features
 
 
 # ---------------------------------------------------------------------------

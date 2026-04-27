@@ -36,6 +36,9 @@ class Settings:
     acrcloud_access_secret: str = ""
     acrcloud_host: str = ""
 
+    # Essentia microservice
+    essentia_url: str | None = None
+
     # Server
     host: str = "0.0.0.0"
     port: int = 8000
@@ -63,6 +66,7 @@ def load_settings(env_path: str = "backend/.env") -> Settings:
         spotify_client_id=os.getenv("SPOTIFY_CLIENT_ID", Settings.spotify_client_id),
         spotify_client_secret=os.getenv("SPOTIFY_CLIENT_SECRET", Settings.spotify_client_secret),
         local_library_path=os.getenv("LOCAL_LIBRARY_PATH", Settings.local_library_path),
+        essentia_url=os.getenv("ESSENTIA_URL") or None,
         host=os.getenv("HOST", Settings.host),
         port=int(os.getenv("PORT", str(Settings.port))),
     )

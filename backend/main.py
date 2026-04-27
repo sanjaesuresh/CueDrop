@@ -292,6 +292,18 @@ async def session_qr():
     return Response(content=png, media_type="image/png")
 
 
+@app.get("/session/current")
+async def get_current_session():
+    return {
+        "id": session.id,
+        "name": session.name,
+        "genres": session.genres,
+        "now_playing": queue_manager.get_state().current.model_dump(mode="json")
+        if queue_manager.get_state().current
+        else None,
+    }
+
+
 @app.get("/session/{session_id}")
 async def get_session(session_id: str):
     return {

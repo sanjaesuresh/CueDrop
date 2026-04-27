@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 import numpy as np
 import pytest
 import soundfile as sf
@@ -19,6 +21,7 @@ from backend.audio_analysis import (
     _check_tempo_drift,
     analyze,
     batch_analyze,
+    enrich_with_essentia,
 )
 
 
@@ -245,3 +248,154 @@ def test_batch_analyze_empty_directory():
 def test_batch_analyze_nonexistent_dir():
     results = batch_analyze("/nonexistent/dir")
     assert results == []
+
+
+# ---------------------------------------------------------------------------
+# Essentia enrichment
+# ---------------------------------------------------------------------------
+
+
+ESSENTIA_RESPONSE = {
+    "key": "C",
+    "scale": "minor",
+    "key_strength": 0.85,
+    "bpm": 128.0,
+    "energy": 0.72,
+    "loudness": -14.3,
+    "danceability": 0.91,
+    "duration_sec": 5.0,
+}
+
+
+def _make_mock_response(json_data: dict, status_code: int = 200) -> MagicMock:
+    """Build a mock httpx.Response."""
+    mock_resp = MagicMock(spec=httpx.Response)
+    mock_resp.status_code = status_code
+    mock_resp.json.return_value = json_data
+    # raise_for_status should be a no-op for 2xx
+    if status_code >= 400:
+        mock_resp.raise_for_status.side_effect = httpx.HTTPStatusError(
+            message=f"HTTP {status_code}",
+            request=MagicMock(),
+            response=mock_resp,
+        )
+    else:
+        mock_resp.raise_for_status.return_value = None
+    return mock_resp
+
+
+@pytest.mark.asyncio
+async def test_enrich_with_essentia_success():
+    """Successful enrichment updates key, key_confidence, and danceability."""
+    features = TrackFeatures(file_path="/tmp/track.wav")
+    features.key = "8B"
+    features.key_confidence = 0.5
+
+    mock_resp = _make_mock_response(ESSENTIA_RESPONSE)
+
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+        tmp_path = tmp.name
+        Path(tmp_path).write_bytes(b"\x00" * 44)  # minimal placeholder
+
+    try:
+        with patch("backend.audio_analysis.httpx.AsyncClient") as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+            mock_client.post = AsyncMock(return_value=mock_resp)
+
+            result = await enrich_with_essentia(features, tmp_path, "http://essentia:8001")
+    finally:
+        Path(tmp_path).unlink(missing_ok=True)
+
+    assert result.key == "C minor"
+    assert result.key_confidence == pytest.approx(0.85)
+    assert result.danceability == pytest.approx(0.91)
+
+
+@pytest.mark.asyncio
+async def test_enrich_with_essentia_service_unavailable():
+    """When Essentia is unreachable, features are returned unchanged."""
+    features = TrackFeatures(file_path="/tmp/track.wav")
+    features.key = "8B"
+    features.key_confidence = 0.5
+    features.danceability = 0.0
+
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+        tmp_path = tmp.name
+        Path(tmp_path).write_bytes(b"\x00" * 44)
+
+    try:
+        with patch("backend.audio_analysis.httpx.AsyncClient") as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+            mock_client.post = AsyncMock(
+                side_effect=httpx.ConnectError("Connection refused")
+            )
+
+            result = await enrich_with_essentia(features, tmp_path, "http://essentia:8001")
+    finally:
+        Path(tmp_path).unlink(missing_ok=True)
+
+    # Original values must be preserved
+    assert result.key == "8B"
+    assert result.key_confidence == pytest.approx(0.5)
+    assert result.danceability == pytest.approx(0.0)
+
+
+@pytest.mark.asyncio
+async def test_enrich_with_essentia_http_error():
+    """When Essentia returns a 5xx response, features are returned unchanged."""
+    features = TrackFeatures(file_path="/tmp/track.wav")
+    features.key = "11A"
+    original_key = features.key
+
+    mock_resp = _make_mock_response({}, status_code=503)
+
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+        tmp_path = tmp.name
+        Path(tmp_path).write_bytes(b"\x00" * 44)
+
+    try:
+        with patch("backend.audio_analysis.httpx.AsyncClient") as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+            mock_client.post = AsyncMock(return_value=mock_resp)
+
+            result = await enrich_with_essentia(features, tmp_path, "http://essentia:8001")
+    finally:
+        Path(tmp_path).unlink(missing_ok=True)
+
+    assert result.key == original_key
+
+
+@pytest.mark.asyncio
+async def test_enrich_with_essentia_partial_response():
+    """Partial Essentia response (missing danceability) only updates present fields."""
+    features = TrackFeatures(file_path="/tmp/track.wav")
+    features.key = "5A"
+    features.danceability = 0.0
+
+    partial = {"key": "A", "scale": "major", "key_strength": 0.72}
+    mock_resp = _make_mock_response(partial)
+
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+        tmp_path = tmp.name
+        Path(tmp_path).write_bytes(b"\x00" * 44)
+
+    try:
+        with patch("backend.audio_analysis.httpx.AsyncClient") as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+            mock_client.post = AsyncMock(return_value=mock_resp)
+
+            result = await enrich_with_essentia(features, tmp_path, "http://essentia:8001")
+    finally:
+        Path(tmp_path).unlink(missing_ok=True)
+
+    assert result.key == "A major"
+    assert result.key_confidence == pytest.approx(0.72)
+    assert result.danceability == pytest.approx(0.0)  # unchanged

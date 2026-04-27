@@ -172,6 +172,15 @@ def test_decline_nonexistent(client):
 # ---------------------------------------------------------------------------
 
 
+def test_get_current_session(client):
+    resp = client.get("/session/current")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "id" in data
+    assert "name" in data
+    assert "genres" in data
+
+
 def test_get_session(client):
     resp = client.get("/session/any_id")
     assert resp.status_code == 200
