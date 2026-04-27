@@ -53,3 +53,6 @@ neo4j_logs
 # Claude Code
 .claude/projects
 .claude/todos
+
+# Superpowers brainstorm artifacts
+.superpowers/
