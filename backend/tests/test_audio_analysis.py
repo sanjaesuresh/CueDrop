@@ -56,9 +56,10 @@ def _make_click_track(bpm: float = 128.0, duration: float = 10.0, sr: int = SR) 
 
 def _make_wav(y: np.ndarray, sr: int = SR) -> str:
     """Write audio to a temp WAV file and return the path."""
-    f = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
-    sf.write(f.name, y, sr)
-    return f.name
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+        path = f.name
+    sf.write(path, y, sr)
+    return path
 
 
 # ---------------------------------------------------------------------------
@@ -125,7 +126,7 @@ def test_detect_energy_sine():
 
 def test_detect_energy_silence():
     y = np.zeros(SR * 3, dtype=np.float32)
-    energy, envelope = _detect_energy(y, SR)
+    energy, _ = _detect_energy(y, SR)
     assert energy == 0.0
 
 
@@ -159,7 +160,7 @@ def test_detect_intro_outro_empty():
 
 
 def test_detect_phrase_boundaries():
-    y = _make_click_track(bpm=128.0, duration=30.0)
+    _ = _make_click_track(bpm=128.0, duration=30.0)
     onset_env = np.random.rand(1000).astype(np.float32)  # simplified
     boundaries = _detect_phrase_boundaries(onset_env, 128.0, SR)
     assert isinstance(boundaries, list)

@@ -4,10 +4,11 @@ Runs inside Docker (x86 via Rosetta) since essentia has no ARM Mac wheels.
 The main backend calls this over HTTP to get audio features.
 """
 
-from fastapi import FastAPI, UploadFile
-from fastapi.responses import JSONResponse
 import tempfile
 import os
+
+from fastapi import FastAPI, UploadFile
+from fastapi.responses import JSONResponse
 
 app = FastAPI(title="CueDrop Essentia Service", version="0.1.0")
 
@@ -38,7 +39,7 @@ async def analyze(file: UploadFile):
 
         # BPM detection
         rhythm_extractor = es.RhythmExtractor2013(method="multifeature")
-        bpm, beats, beats_confidence, _, beats_intervals = rhythm_extractor(audio)
+        bpm, beats, _, _, _ = rhythm_extractor(audio)
 
         # Energy (RMS)
         energy = float(es.Energy()(audio))

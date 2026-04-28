@@ -6,8 +6,6 @@ import pytest
 
 from backend.dj_brain import (
     BridgeResult,
-    Evaluation,
-    SlotResult,
     _hop_cost,
     build_bridge_path,
     evaluate_request,
@@ -15,7 +13,7 @@ from backend.dj_brain import (
     get_energy_target,
     select_next,
 )
-from backend.models import Phase, SetState, TrackModel
+from backend.models import SetState, TrackModel
 
 
 # ---------------------------------------------------------------------------

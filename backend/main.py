@@ -21,7 +21,6 @@ from backend.orchestrator import DJOrchestrator
 from backend.qr_generator import generate as generate_qr
 from backend.queue_manager import QueueManager
 from backend.scraper_service import ScraperService
-from backend.transition_logger import TransitionLogger
 from backend.vdj_client import MockVDJClient, VDJClient, VDJClientProtocol
 
 logger = logging.getLogger(__name__)

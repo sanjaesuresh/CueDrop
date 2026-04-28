@@ -5,8 +5,8 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 
-from backend.camelot import compatibility_score, is_compatible
-from backend.models import Phase, SetState, TrackModel
+from backend.camelot import compatibility_score
+from backend.models import SetState, TrackModel
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +99,7 @@ def _score_candidate(
     # Self-play quality (from transition edge data if available)
     breakdown["self_play"] = min(candidate.get("self_play_quality", 0.5), 1.0)
 
-    total = sum(WEIGHTS[k] * breakdown[k] for k in WEIGHTS)
+    total = sum(v * breakdown[k] for k, v in WEIGHTS.items())
 
     return ScoredTrack(track=candidate, score=total, breakdown=breakdown)
 
@@ -280,7 +280,7 @@ def build_bridge_path(
     best_result = BridgeResult(path=[], total_cost=float("inf"), feasible=False)
     visited_global: set[str] = {from_id}
 
-    for hop in range(max_hops):
+    for _ in range(max_hops):
         candidates: list[tuple[float, list[dict], dict]] = []
 
         for cost_so_far, path_so_far, last_track in beam:

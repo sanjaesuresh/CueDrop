@@ -319,22 +319,31 @@ class GraphClient:
 
         if bpm_range is not None:
             min_bpm, max_bpm = bpm_range
-            where_clauses.append("ALL(node IN nodes(path)[1:-1] WHERE node.bpm IS NOT NULL AND node.bpm >= $min_bpm AND node.bpm <= $max_bpm)")
+            where_clauses.append(
+                "ALL(node IN nodes(path)[1:-1] WHERE node.bpm IS NOT NULL "
+                "AND node.bpm >= $min_bpm AND node.bpm <= $max_bpm)"
+            )
             params["min_bpm"] = min_bpm
             params["max_bpm"] = max_bpm
 
         if max_energy_delta is not None:
-            where_clauses.append("ALL(i IN range(0, length(relationships(path))-1) WHERE abs(nodes(path)[i].energy - nodes(path)[i+1].energy) <= $max_energy_delta)")
+            where_clauses.append(
+                "ALL(i IN range(0, length(relationships(path))-1) "
+                "WHERE abs(nodes(path)[i].energy - nodes(path)[i+1].energy) <= $max_energy_delta)"
+            )
             params["max_energy_delta"] = max_energy_delta
 
         where_clause = " AND ".join(where_clauses) if where_clauses else ""
         where_block = f"WHERE {where_clause}" if where_clause else ""
 
-        query = f"""
-        MATCH path = shortestPath((source:Track {{track_id: $source_id}}){path_pattern}(target:Track {{track_id: $target_id}}))
-        {where_block}
-        RETURN [node IN nodes(path) | properties(node)] AS path_nodes
-        """
+        query = (
+            "MATCH path = shortestPath("
+            "(source:Track {track_id: $source_id})"
+            f"{path_pattern}"
+            "(target:Track {track_id: $target_id})) "
+            f"{where_block} "
+            "RETURN [node IN nodes(path) | properties(node)] AS path_nodes"
+        )
 
         async with self._driver.session() as session:
             result = await session.run(query, params)

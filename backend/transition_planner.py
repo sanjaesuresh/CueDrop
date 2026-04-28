@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import math
 from dataclasses import dataclass, field
 
 from backend.camelot import is_compatible
@@ -167,10 +166,10 @@ def _build_blend(incoming_deck: int, outgoing_deck: int, duration_ms: int) -> li
     step = duration_ms // 4
     return [
         VDJCommand(f"deck {incoming_deck} play", 0),
-        VDJCommand(f"crossfader 25%", step),
-        VDJCommand(f"crossfader 50%", step * 2),
-        VDJCommand(f"crossfader 75%", step * 3),
-        VDJCommand(f"crossfader 100%", duration_ms),
+        VDJCommand("crossfader 25%", step),
+        VDJCommand("crossfader 50%", step * 2),
+        VDJCommand("crossfader 75%", step * 3),
+        VDJCommand("crossfader 100%", duration_ms),
         VDJCommand(f"deck {outgoing_deck} stop", duration_ms + 500),
     ]
 
@@ -181,12 +180,12 @@ def _build_bass_swap(incoming_deck: int, outgoing_deck: int, duration_ms: int) -
     return [
         VDJCommand(f"deck {incoming_deck} eq_low 0%", 0),
         VDJCommand(f"deck {incoming_deck} play", 0),
-        VDJCommand(f"crossfader 50%", quarter),
+        VDJCommand("crossfader 50%", quarter),
         # Bass swap at midpoint
         VDJCommand(f"deck {outgoing_deck} eq_low 0%", quarter * 2),
         VDJCommand(f"deck {incoming_deck} eq_low 100%", quarter * 2),
-        VDJCommand(f"crossfader 75%", quarter * 3),
-        VDJCommand(f"crossfader 100%", duration_ms),
+        VDJCommand("crossfader 75%", quarter * 3),
+        VDJCommand("crossfader 100%", duration_ms),
         VDJCommand(f"deck {outgoing_deck} stop", duration_ms + 500),
         VDJCommand(f"deck {outgoing_deck} eq_low 100%", duration_ms + 600),
     ]
@@ -196,7 +195,7 @@ def _build_cut(incoming_deck: int, outgoing_deck: int) -> list[VDJCommand]:
     """Hard cut on beat 1."""
     return [
         VDJCommand(f"deck {incoming_deck} play", 0),
-        VDJCommand(f"crossfader 100%", 0),
+        VDJCommand("crossfader 100%", 0),
         VDJCommand(f"deck {outgoing_deck} stop", 100),
     ]
 
@@ -206,9 +205,9 @@ def _build_echo_out(incoming_deck: int, outgoing_deck: int, duration_ms: int) ->
     half = duration_ms // 2
     return [
         VDJCommand(f"deck {outgoing_deck} effect 'echo' on", 0),
-        VDJCommand(f"crossfader 50%", half // 2),
+        VDJCommand("crossfader 50%", half // 2),
         VDJCommand(f"deck {incoming_deck} play", half),
-        VDJCommand(f"crossfader 100%", half + (half // 2)),
+        VDJCommand("crossfader 100%", half + (half // 2)),
         VDJCommand(f"deck {outgoing_deck} effect 'echo' off", duration_ms),
         VDJCommand(f"deck {outgoing_deck} stop", duration_ms + 500),
     ]
@@ -220,9 +219,9 @@ def _build_filter_sweep(incoming_deck: int, outgoing_deck: int, duration_ms: int
     return [
         VDJCommand(f"deck {outgoing_deck} filter_low 80%", 0),
         VDJCommand(f"deck {incoming_deck} play", third),
-        VDJCommand(f"crossfader 50%", third),
+        VDJCommand("crossfader 50%", third),
         VDJCommand(f"deck {outgoing_deck} filter_low 20%", third * 2),
-        VDJCommand(f"crossfader 100%", duration_ms),
+        VDJCommand("crossfader 100%", duration_ms),
         VDJCommand(f"deck {outgoing_deck} filter_low 100%", duration_ms + 100),
         VDJCommand(f"deck {outgoing_deck} stop", duration_ms + 500),
     ]
@@ -233,11 +232,11 @@ def _build_filter_sweep(incoming_deck: int, outgoing_deck: int, duration_ms: int
 # ---------------------------------------------------------------------------
 
 _BUILDERS = {
-    TransitionType.BLEND: lambda i, o, d: _build_blend(i, o, d),
-    TransitionType.BASS_SWAP: lambda i, o, d: _build_bass_swap(i, o, d),
+    TransitionType.BLEND: _build_blend,
+    TransitionType.BASS_SWAP: _build_bass_swap,
     TransitionType.CUT: lambda i, o, _d: _build_cut(i, o),
-    TransitionType.ECHO_OUT: lambda i, o, d: _build_echo_out(i, o, d),
-    TransitionType.FILTER_SWEEP: lambda i, o, d: _build_filter_sweep(i, o, d),
+    TransitionType.ECHO_OUT: _build_echo_out,
+    TransitionType.FILTER_SWEEP: _build_filter_sweep,
 }
 
 # Default duration bars per type

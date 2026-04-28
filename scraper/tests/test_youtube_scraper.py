@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-import pytest
-
 from scraper.youtube_scraper import (
     DownloadResult,
     SetMetadata,
-    TimestampedTrack,
     parse_tracklist_from_description,
 )
 

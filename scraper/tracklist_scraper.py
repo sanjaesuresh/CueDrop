@@ -7,7 +7,7 @@ import logging
 import random
 import re
 import asyncio
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 from playwright.async_api import Page, async_playwright
@@ -81,7 +81,11 @@ async def discover_sets(
     genre_slug = genre.lower().replace(" ", "-")
 
     while len(urls) < max_sets:
-        listing_url = f"{BASE_URL}/genre/{genre_slug}/index{page_num}.html" if page_num > 1 else f"{BASE_URL}/genre/{genre_slug}/index.html"
+        listing_url = (
+            f"{BASE_URL}/genre/{genre_slug}/index{page_num}.html"
+            if page_num > 1
+            else f"{BASE_URL}/genre/{genre_slug}/index.html"
+        )
         logger.info("Discovering page %d: %s", page_num, listing_url)
 
         try:

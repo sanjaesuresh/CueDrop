@@ -175,7 +175,6 @@ class ACRCloudFingerprinter:
         try:
             import librosa
             import soundfile as sf
-            import numpy as np
             import tempfile
 
             y, sr = librosa.load(file_path, sr=22050, mono=True)

@@ -1,0 +1,37 @@
+[MAIN]
+ignore-paths=node_modules,dist,_docs,docs,public,src
+
+[FORMAT]
+max-line-length=120
+
+[MESSAGES CONTROL]
+disable=
+    missing-module-docstring,
+    missing-class-docstring,
+    missing-function-docstring,
+    import-error,
+    too-many-instance-attributes,
+    too-few-public-methods,
+    too-many-return-statements,
+    too-many-arguments,
+    too-many-locals,
+    too-many-positional-arguments,
+    too-many-branches,
+    too-many-statements,
+    redefined-outer-name,
+    import-outside-toplevel,
+    protected-access,
+    broad-exception-caught,
+    unused-argument,
+    invalid-name,
+    global-statement,
+    use-implicit-booleaness-not-comparison,
+    fixme,
+    duplicate-code
+
+[DESIGN]
+max-attributes=20
+
+[BASIC]
+good-names=i,j,k,_,id,db,fp,x,y,z,n,t,f,e,bpm,bar
+bad-names=foo,baz,toto,tutu,tata

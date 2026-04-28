@@ -14,7 +14,8 @@ logger = logging.getLogger(__name__)
 
 INTENT_TYPES = ("track_request", "vibe_request", "artist_request", "skip", "query", "energy_shift")
 
-SYSTEM_PROMPT = """You are the AI behind CueDrop, an autonomous DJ system. You interpret messages from the admin DJ and extract intents.
+SYSTEM_PROMPT = """You are the AI behind CueDrop, an autonomous DJ system. \
+You interpret messages from the admin DJ and extract intents.
 
 Respond with JSON only, no markdown fences:
 {
@@ -94,7 +95,7 @@ class ChatHandler:
             return Intent(
                 type="track_request",
                 data={"raw_query": text},
-                response=f"I'll try to find and queue that for you.",
+                response="I'll try to find and queue that for you.",
             )
 
         if any(w in lower for w in ("more energy", "go harder", "turn up", "pump it")):

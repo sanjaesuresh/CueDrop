@@ -8,7 +8,6 @@ from backend.edge_reweighter import (
     WEIGHT_FREQUENCY,
     WEIGHT_SELF_PLAY,
     WEIGHT_VIRALITY,
-    EdgeWeight,
     batch_reweight,
     compute_edge_weight,
 )

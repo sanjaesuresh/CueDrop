@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 
-from backend.edge_reweighter import compute_edge_weight
 from backend.models import SetState, Source, TrackModel
 from backend.queue_manager import QueueManager
 from backend.transition_logger import QualitySignal, TransitionLogger

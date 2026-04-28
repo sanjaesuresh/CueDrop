@@ -220,7 +220,7 @@ async def test_upsert_set_creates_graph(client_and_mocks):
 
 @pytest.mark.asyncio
 async def test_get_track_found(client_and_mocks):
-    client, session, run_result, _ = client_and_mocks
+    client, _session, run_result, _ = client_and_mocks
     run_result.single.return_value = {
         "t": {"track_id": "abc", "title": "Song", "artist": "Art"}
     }
@@ -231,7 +231,7 @@ async def test_get_track_found(client_and_mocks):
 
 @pytest.mark.asyncio
 async def test_get_track_not_found(client_and_mocks):
-    client, session, run_result, _ = client_and_mocks
+    client, _session, run_result, _ = client_and_mocks
     run_result.single.return_value = None
 
     result = await client.get_track("nonexistent")
@@ -279,7 +279,7 @@ async def test_get_neighbors(client_and_mocks):
 
 @pytest.mark.asyncio
 async def test_get_stats(client_and_mocks):
-    client, session, run_result, _ = client_and_mocks
+    client, _session, run_result, _ = client_and_mocks
     run_result.single.return_value = {
         "tracks": 100,
         "transitions": 250,
@@ -356,7 +356,7 @@ async def test_find_path_basic(client_and_mocks):
 @pytest.mark.asyncio
 async def test_find_path_no_path(client_and_mocks):
     """Test when no path exists."""
-    client, session, run_result, _ = client_and_mocks
+    client, _session, run_result, _ = client_and_mocks
 
     run_result.single.return_value = None
 

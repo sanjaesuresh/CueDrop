@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from backend.models import Phase, SetState, TrackModel, TransitionType
 from backend.transition_planner import (
     TransitionPlan,

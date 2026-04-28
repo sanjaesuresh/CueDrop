@@ -3,9 +3,6 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
-from unittest.mock import patch
-
-import pytest
 
 from backend.guest_handler import GuestHandler
 from backend.models import RequestStatus, SessionSettings, SetState, TrackModel
@@ -76,7 +73,7 @@ def test_cooldown_allows_after_expiry():
 def test_abuse_detection():
     gh = GuestHandler(settings=SessionSettings(cooldown_mins=0))
     # Submit 6 requests (> 5 threshold)
-    for i in range(6):
+    for _ in range(6):
         gh._device_history.setdefault("dev1", []).append(datetime.now(UTC) - timedelta(hours=1))
     req = gh.submit_request(_track(), "s", "dev1")
     assert req.status == RequestStatus.DECLINED

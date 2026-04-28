@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-import pytest
-
 from scraper.transition_extractor import (
     ExtractionResult,
-    ExtractedTransition,
     compute_virality_score,
     extract_transitions,
     generate_track_id,
