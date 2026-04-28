@@ -76,15 +76,15 @@ export default function GuestApp() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-950 text-white">
+    <div className="flex flex-col h-screen bg-deep text-white">
       {/* Header */}
-      <header className="px-4 py-3 bg-gray-900 border-b border-gray-800">
-        <h1 className="text-lg font-bold text-emerald-400">
+      <header className="px-4 py-3 border-b border-purple-500/10">
+        <h1 className="text-lg font-bold text-purple-400">
           {sessionInfo?.name || 'CueDrop'}
         </h1>
         {nowPlaying && (
-          <p className="text-xs text-gray-400 mt-0.5">
-            Now playing: {nowPlaying.track?.title} — {nowPlaying.track?.artist}
+          <p className="text-xs text-slate-500 mt-0.5">
+            Now playing: <span className="text-slate-400">{nowPlaying.track?.title}</span> — {nowPlaying.track?.artist}
           </p>
         )}
       </header>

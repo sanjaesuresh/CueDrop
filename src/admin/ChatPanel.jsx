@@ -14,22 +14,22 @@ function ApprovalCard({ request, onRefresh }) {
   };
 
   return (
-    <div className="bg-gray-700/50 rounded-lg p-3 border border-gray-600">
-      <p className="text-xs text-amber-400 font-medium mb-1">Guest Request</p>
-      <p className="text-sm font-medium">{request.track?.title}</p>
-      <p className="text-xs text-gray-400">{request.track?.artist}</p>
-      <div className="flex gap-2 mt-2">
+    <div className="rounded-xl p-3 bg-pink-500/[0.06] border border-pink-500/20">
+      <p className="text-[10px] text-pink-400 font-semibold uppercase tracking-widest mb-1">Guest Request</p>
+      <p className="text-sm font-medium text-white">{request.track?.title}</p>
+      <p className="text-xs text-slate-500">{request.track?.artist}</p>
+      <div className="flex gap-2 mt-2.5">
         <button
           disabled={acting}
           onClick={() => handleAction('approve')}
-          className="flex-1 py-1.5 text-xs font-medium rounded bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50"
+          className="flex-1 py-1.5 text-xs font-medium rounded-lg bg-green-500/15 text-green-400 border border-green-500/20 hover:bg-green-500/25 disabled:opacity-40 transition-colors"
         >
           Approve
         </button>
         <button
           disabled={acting}
           onClick={() => handleAction('decline')}
-          className="flex-1 py-1.5 text-xs font-medium rounded bg-red-600 hover:bg-red-500 disabled:opacity-50"
+          className="flex-1 py-1.5 text-xs font-medium rounded-lg bg-red-500/15 text-red-400 border border-red-500/20 hover:bg-red-500/25 disabled:opacity-40 transition-colors"
         >
           Decline
         </button>
@@ -76,22 +76,20 @@ export default function ChatPanel({ pendingRequests, onRefreshRequests }) {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Messages */}
       <div ref={listRef} className="flex-1 overflow-y-auto p-3 space-y-3">
-        {/* Pending approval cards */}
         {pendingRequests.map((req) => (
           <ApprovalCard key={req.id} request={req} onRefresh={onRefreshRequests} />
         ))}
 
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[80%] px-3 py-2 rounded-lg text-sm ${
+            <div className={`max-w-[80%] px-3 py-2 rounded-xl text-sm ${
               msg.role === 'user'
-                ? 'bg-emerald-700 text-white'
-                : 'bg-gray-700 text-gray-100'
+                ? 'bg-purple-600/40 text-white border border-purple-500/20'
+                : 'bg-card text-slate-200 border border-purple-500/10'
             }`}>
               {msg.intent && (
-                <span className="inline-block px-1.5 py-0.5 text-[10px] bg-gray-600 rounded mb-1 mr-1">
+                <span className="inline-block px-1.5 py-0.5 text-[9px] font-semibold bg-purple-500/15 text-purple-400 rounded border border-purple-500/20 mb-1 mr-1">
                   {msg.intent}
                 </span>
               )}
@@ -102,27 +100,30 @@ export default function ChatPanel({ pendingRequests, onRefreshRequests }) {
 
         {sending && (
           <div className="flex justify-start">
-            <div className="bg-gray-700 text-gray-400 px-3 py-2 rounded-lg text-sm animate-pulse">
-              Thinking...
+            <div className="bg-card text-purple-400 px-3 py-2 rounded-xl text-sm border border-purple-500/10">
+              <span className="inline-flex gap-1">
+                <span className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              </span>
             </div>
           </div>
         )}
       </div>
 
-      {/* Input */}
-      <div className="p-3 border-t border-gray-700 bg-gray-800">
+      <div className="p-3 border-t border-purple-500/10 bg-deep">
         <div className="flex gap-2">
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && send()}
             placeholder="Tell the AI DJ..."
-            className="flex-1 px-3 py-2 bg-gray-700 rounded-lg text-sm text-white placeholder-gray-500 outline-none focus:ring-1 focus:ring-emerald-500"
+            className="flex-1 px-3 py-2.5 bg-surface rounded-xl text-sm text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-purple-500/50 border border-purple-500/10"
           />
           <button
             onClick={send}
             disabled={sending || !input.trim()}
-            className="px-4 py-2 bg-emerald-600 rounded-lg text-sm font-medium hover:bg-emerald-500 disabled:opacity-50"
+            className="px-4 py-2.5 bg-purple-600 rounded-xl text-sm font-medium hover:bg-purple-500 disabled:opacity-40 transition-colors shadow-[0_0_10px_rgba(139,92,246,0.2)]"
           >
             Send
           </button>
