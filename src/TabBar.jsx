@@ -5,10 +5,11 @@ export default function TabBar({ tabs, activeTab, onTabChange, accentColor = 'pu
   const activeBorder = accentColor === 'cyan'
     ? 'border-cyan-400 shadow-[0_2px_8px_rgba(34,211,238,0.5)]'
     : 'border-purple-400 shadow-[0_2px_8px_rgba(167,139,250,0.5)]';
+  const stripBorder = accentColor === 'cyan' ? 'border-cyan-400/15' : 'border-purple-500/15';
 
   return (
     <div
-      className="flex overflow-x-auto scrollbar-hide border-b border-purple-500/15 bg-deep/80 backdrop-blur-xl"
+      className={`flex overflow-x-auto scrollbar-hide border-b ${stripBorder} bg-deep/80 backdrop-blur-xl`}
       style={{ scrollbarWidth: 'none' }}
     >
       {tabs.map((tab) => {
