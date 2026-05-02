@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -57,11 +58,12 @@ class MusicResolver:
         self._spotify_client_id = spotify_client_id
         self._spotify_client_secret = spotify_client_secret
         self._spotify_token: str | None = None
+        self._spotify_token_expiry: float = 0.0
         self._http = httpx.AsyncClient(timeout=10.0)
 
     async def _get_spotify_token(self) -> str | None:
         """Get or refresh Spotify client credentials token."""
-        if self._spotify_token:
+        if self._spotify_token and time.time() < self._spotify_token_expiry:
             return self._spotify_token
         if not self._spotify_client_id or not self._spotify_client_secret:
             return None
@@ -72,7 +74,9 @@ class MusicResolver:
                 auth=(self._spotify_client_id, self._spotify_client_secret),
             )
             resp.raise_for_status()
-            self._spotify_token = resp.json()["access_token"]
+            data = resp.json()
+            self._spotify_token = data["access_token"]
+            self._spotify_token_expiry = time.time() + data.get("expires_in", 3600) - 60
             return self._spotify_token
         except Exception as exc:
             logger.warning("Failed to get Spotify token: %s", exc)

@@ -1,5 +1,6 @@
 # Docs (internal)
 _docs
+docs
 
 # Node
 node_modules
@@ -53,6 +54,9 @@ neo4j_logs
 # Claude Code
 .claude/projects
 .claude/todos
+
+# Local history (VSCode extension)
+.history/
 
 # Superpowers brainstorm artifacts
 .superpowers/
