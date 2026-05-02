@@ -2,8 +2,9 @@ import TabBar from './TabBar.jsx';
 
 const NOISE_SVG = `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E")`;
 
-export default function AppShell({ tabs, activeTab, onTabChange, accentColor = 'purple', title = 'CueDrop' }) {
+export default function AppShell({ tabs, activeTab, onTabChange, accentColor = 'purple' }) {
   const activeTabDef = tabs.find((t) => t.id === activeTab) ?? tabs[0];
+  const wordmarkAccent = accentColor === 'cyan' ? 'text-cyan-400' : 'text-purple-400';
 
   return (
     <div className="flex flex-col h-screen bg-deep text-white overflow-hidden relative">
@@ -28,7 +29,7 @@ export default function AppShell({ tabs, activeTab, onTabChange, accentColor = '
             className="text-base font-extrabold tracking-tight"
             style={{ fontFamily: 'var(--font-display)' }}
           >
-            Cue<span className="text-purple-400">Drop</span>
+            Cue<span className={wordmarkAccent}>Drop</span>
           </span>
         </div>
         <TabBar
