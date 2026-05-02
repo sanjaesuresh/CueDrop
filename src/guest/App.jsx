@@ -1,38 +1,48 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import Search from './Search.jsx';
-import Confirmation from './Confirmation.jsx';
+import AppShell from '../AppShell.jsx';
+import GuestSearchTab from './tabs/SearchTab.jsx';
+import NowPlayingTab from './tabs/NowPlayingTab.jsx';
+import MyRequestTab from './tabs/MyRequestTab.jsx';
 
 function getDeviceId() {
   let id = sessionStorage.getItem('cuedrop_device_id');
-  if (!id) {
-    id = crypto.randomUUID();
-    sessionStorage.setItem('cuedrop_device_id', id);
-  }
+  if (!id) { id = crypto.randomUUID(); sessionStorage.setItem('cuedrop_device_id', id); }
   return id;
 }
 
+const SearchIcon = () => (
+  <svg fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24" width="18" height="18">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+  </svg>
+);
+const MusicIcon = () => (
+  <svg fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24" width="18" height="18">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+  </svg>
+);
+const CheckIcon = () => (
+  <svg fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24" width="18" height="18">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
 export default function GuestApp() {
   const { sessionId } = useParams();
+  const [activeTab, setActiveTab] = useState('search');
   const [sessionInfo, setSessionInfo] = useState(null);
-  const [view, setView] = useState('search'); // search | confirmation
   const [submittedRequest, setSubmittedRequest] = useState(null);
   const [nowPlaying, setNowPlaying] = useState(null);
   const wsRef = useRef(null);
   const deviceId = useRef(getDeviceId());
 
-  // Fetch session info
   useEffect(() => {
     fetch(`/session/${sessionId}`)
-      .then((r) => r.json())
-      .then((data) => {
-        setSessionInfo(data);
-        if (data.now_playing) setNowPlaying(data.now_playing);
-      })
+      .then(r => r.json())
+      .then((data) => { setSessionInfo(data); if (data.now_playing) setNowPlaying(data.now_playing); })
       .catch(() => {});
   }, [sessionId]);
 
-  // WebSocket
   const handleWsMessage = useCallback((msg) => {
     if (msg.type === 'now_playing') setNowPlaying(msg.data);
     if (msg.type === 'request_update' && submittedRequest) {
@@ -43,10 +53,8 @@ export default function GuestApp() {
   useEffect(() => {
     const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
     const ws = new WebSocket(`${protocol}//${location.host}/ws/guest/${sessionId}`);
-    ws.onmessage = (e) => {
-      try { handleWsMessage(JSON.parse(e.data)); } catch {}
-    };
-    ws.onclose = () => setTimeout(() => {}, 3000);
+    ws.onmessage = (e) => { try { handleWsMessage(JSON.parse(e.data)); } catch {} };
+    ws.onclose = () => {};
     wsRef.current = ws;
     return () => ws.close();
   }, [sessionId, handleWsMessage]);
@@ -64,38 +72,45 @@ export default function GuestApp() {
       });
       const data = await res.json();
       setSubmittedRequest({ ...data, track });
-      setView('confirmation');
+      setActiveTab('my-request');
     } catch {
       alert('Failed to submit request. Try again.');
     }
   };
 
   const handleRequestAnother = () => {
-    setView('search');
     setSubmittedRequest(null);
+    setActiveTab('search');
   };
 
-  return (
-    <div className="flex flex-col h-screen bg-deep text-white">
-      {/* Header */}
-      <header className="px-4 py-3 border-b border-purple-500/10">
-        <h1 className="text-lg font-bold text-purple-400">
-          {sessionInfo?.name || 'CueDrop'}
-        </h1>
-        {nowPlaying && (
-          <p className="text-xs text-slate-500 mt-0.5">
-            Now playing: <span className="text-slate-400">{nowPlaying.track?.title}</span> — {nowPlaying.track?.artist}
-          </p>
-        )}
-      </header>
+  const tabs = [
+    {
+      id: 'search',
+      label: 'Search',
+      icon: <SearchIcon />,
+      render: () => <GuestSearchTab sessionInfo={sessionInfo} onSelect={handleSelect} />,
+    },
+    {
+      id: 'now-playing',
+      label: 'Now Playing',
+      icon: <MusicIcon />,
+      render: () => <NowPlayingTab nowPlaying={nowPlaying} />,
+    },
+    {
+      id: 'my-request',
+      label: 'My Request',
+      icon: <CheckIcon />,
+      badge: submittedRequest ? 1 : 0,
+      render: () => <MyRequestTab request={submittedRequest} onRequestAnother={handleRequestAnother} />,
+    },
+  ];
 
-      {/* Content */}
-      <main className="flex-1 overflow-hidden">
-        {view === 'search' && <Search onSelect={handleSelect} />}
-        {view === 'confirmation' && (
-          <Confirmation request={submittedRequest} onRequestAnother={handleRequestAnother} />
-        )}
-      </main>
-    </div>
+  return (
+    <AppShell
+      tabs={tabs}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      accentColor="cyan"
+    />
   );
 }
