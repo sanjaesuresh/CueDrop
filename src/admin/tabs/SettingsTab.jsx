@@ -33,6 +33,7 @@ export default function SettingsTab() {
   const [sessionInfo, setSessionInfo] = useState(null);
 
   useEffect(() => {
+    fetch('/settings').then(r => r.json()).then(data => setValues((prev) => ({ ...prev, ...data }))).catch(() => {});
     fetch('/session/qr').then(r => r.blob()).then(b => setQrUrl(URL.createObjectURL(b))).catch(() => {});
     fetch('/session/current').then(r => r.json()).then(setSessionInfo).catch(() => {});
   }, []);
