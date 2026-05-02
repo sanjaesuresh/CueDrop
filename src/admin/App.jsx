@@ -9,8 +9,10 @@ import SettingsTab from './tabs/SettingsTab.jsx';
 function useAdminWebSocket(onMessage) {
   const wsRef = useRef(null);
   const reconnectTimer = useRef(null);
+  const mountedRef = useRef(true);
 
   const connect = useCallback(() => {
+    if (!mountedRef.current) return;
     const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
     const ws = new WebSocket(`${protocol}//${location.host}/ws/admin`);
     ws.onmessage = (e) => {
@@ -24,8 +26,10 @@ function useAdminWebSocket(onMessage) {
   }, [onMessage]);
 
   useEffect(() => {
+    mountedRef.current = true;
     connect();
     return () => {
+      mountedRef.current = false;
       clearTimeout(reconnectTimer.current);
       wsRef.current?.close();
     };
