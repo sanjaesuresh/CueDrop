@@ -24,7 +24,7 @@ export default function Landing() {
 
   return (
     <div
-      className="min-h-screen bg-[#07050f] text-white overflow-x-hidden"
+      className="min-h-screen bg-deep text-white overflow-x-hidden"
       style={{ fontFamily: 'var(--font-display)' }}
     >
       {/* Noise */}

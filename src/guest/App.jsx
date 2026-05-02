@@ -46,6 +46,9 @@ export default function GuestApp() {
   const submittedRequestRef = useRef(submittedRequest);
   useEffect(() => { submittedRequestRef.current = submittedRequest; }, [submittedRequest]);
 
+  const mountedRef = useRef(true);
+  const reconnectTimerRef = useRef(null);
+
   const handleWsMessage = useCallback((msg) => {
     if (msg.type === 'now_playing') setNowPlaying(msg.data);
     if (msg.type === 'request_update' && submittedRequestRef.current) {
@@ -53,14 +56,24 @@ export default function GuestApp() {
     }
   }, []);
 
-  useEffect(() => {
+  const connectWs = useCallback(() => {
+    if (!mountedRef.current) return;
     const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
     const ws = new WebSocket(`${protocol}//${location.host}/ws/guest/${sessionId}`);
     ws.onmessage = (e) => { try { handleWsMessage(JSON.parse(e.data)); } catch {} };
-    ws.onclose = () => {};
+    ws.onclose = () => { reconnectTimerRef.current = setTimeout(connectWs, 2000); };
     wsRef.current = ws;
-    return () => ws.close();
   }, [sessionId, handleWsMessage]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    connectWs();
+    return () => {
+      mountedRef.current = false;
+      clearTimeout(reconnectTimerRef.current);
+      wsRef.current?.close();
+    };
+  }, [connectWs]);
 
   const handleSelect = async (track) => {
     try {
