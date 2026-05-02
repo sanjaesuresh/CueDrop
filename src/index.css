@@ -1,7 +1,9 @@
 @import "tailwindcss";
 
 @theme {
-  --color-deep: #0c0a1a;
-  --color-card: #1a0e2e;
+  --color-deep: #07050f;
+  --color-card: #100c1e;
   --color-surface: #221538;
+  --font-display: 'Syne', sans-serif;
+  --font-mono: 'Space Mono', monospace;
 }
