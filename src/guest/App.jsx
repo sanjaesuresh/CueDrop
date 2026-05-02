@@ -43,12 +43,15 @@ export default function GuestApp() {
       .catch(() => {});
   }, [sessionId]);
 
+  const submittedRequestRef = useRef(submittedRequest);
+  useEffect(() => { submittedRequestRef.current = submittedRequest; }, [submittedRequest]);
+
   const handleWsMessage = useCallback((msg) => {
     if (msg.type === 'now_playing') setNowPlaying(msg.data);
-    if (msg.type === 'request_update' && submittedRequest) {
+    if (msg.type === 'request_update' && submittedRequestRef.current) {
       setSubmittedRequest((prev) => ({ ...prev, ...msg.data }));
     }
-  }, [submittedRequest]);
+  }, []);
 
   useEffect(() => {
     const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
