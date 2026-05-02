@@ -1,7 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import Landing from './Landing.jsx';
 
+const Landing  = lazy(() => import('./Landing.jsx'));
 const AdminApp = lazy(() => import('./admin/App.jsx'));
 const GuestApp = lazy(() => import('./guest/App.jsx'));
 

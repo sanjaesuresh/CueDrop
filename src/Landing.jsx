@@ -17,7 +17,7 @@ const CHIP_STYLES = {
   cyan:   'text-cyan-400   border-cyan-400/25   bg-cyan-400/8',
 };
 
-const WAVE_HEIGHTS = [8, 14, 10, 16, 6, 12, 9, 15, 7, 13];
+const WAVE_HEIGHTS = [8, 14, 10, 16, 6];
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -246,7 +246,7 @@ export default function Landing() {
               <strong className="text-purple-400">Live session</strong> · Now playing: Bicep — Glue (Original Mix)
             </span>
             <div className="flex items-end gap-[3px] h-4">
-              {WAVE_HEIGHTS.slice(0, 5).map((h, i) => (
+              {WAVE_HEIGHTS.map((h, i) => (
                 <span
                   key={i}
                   className="w-[3px] rounded-sm bg-purple-400 opacity-50"
